@@ -667,10 +667,10 @@ function genMelodia(key, clef){
         // estado libre: clasificar el intervalo que acabamos de hacer
         if(paso===2){
           estado={tipo:'tras3a', dir:d};             // 3ª: abre posible arpegio
-        } else if(paso===3||paso===4||paso===5){
-          estado={tipo:'resolver', dir:-d};          // 4ª/5ª/6ª suelta: 2ª contraria
+        } else if(paso===3||paso===4||paso===5||paso===7){
+          estado={tipo:'resolver', dir:-d};          // 4ª/5ª/6ª/8ª suelta: 2ª contraria
         } else {
-          estado={tipo:'libre'};                     // 2ª u 8ª
+          estado={tipo:'libre'};                     // 2ª
         }
       }
       seq.push(nxt);
@@ -749,27 +749,34 @@ function dibujarPentagramaMelodico(ctx, key, mel, x0, y, w, conMarcoYEtiqueta){
     } else { v=midiToVF(m,useFlats,sigPCs); }
     const sn=new VF.StaveNote({keys:[v.key],duration:'w',clef});
     if(v.accidental) sn.addModifier(new VF.Accidental(v.accidental),0);
-    if(i===0) sn.setStyle({fillStyle:'#7a1f1f',strokeStyle:'#7a1f1f'});
-    return sn;
+    return sn;   // todas las notas iguales (sin estilo especial)
   });
   const voice=new VF.Voice({num_beats:40,beat_value:4});
   voice.setStrict(false); voice.addTickables(notes);
   new VF.Formatter().joinVoices([voice]).format([voice],w-110);
   voice.draw(ctx,stave);
-  // números 1..10 bajo cada nota
-  const numY = y + 130;   // bajo el pentagrama
+  // números 1..10 bajo cada nota; 1 y 10 rodeados
+  const numY = y + 130;
   ctx.save(); ctx.setFont('Arial',12,'bold'); ctx.setFillStyle('#8089a8');
-  notes.forEach((n,i)=>{ let x; try{ x=n.getAbsoluteX(); }catch(e){ x=null; } if(x!=null) ctx.fillText(String(i+1), x-3, numY); });
-  ctx.restore();
-  if(conMarcoYEtiqueta){
-    const bb=notes[0].getBoundingBox();
-    if(bb){
-      ctx.save(); ctx.setStrokeStyle('#7a1f1f'); ctx.setLineWidth(1.5);
-      const pad=5;
-      ctx.rect(bb.getX()-pad,bb.getY()-pad,bb.getW()+pad*2,bb.getH()+pad*2);
+  notes.forEach((n,i)=>{
+    let nx; try{ nx=n.getAbsoluteX(); }catch(e){ nx=null; }
+    if(nx==null) return;
+    const label=String(i+1);
+    const tw=(ctx.measureText && ctx.measureText(label).width) ? ctx.measureText(label).width : label.length*7;
+    const tx=nx-3;
+    const cxNum=tx + tw/2;
+    ctx.fillText(label, tx, numY);
+    if(i===0 || i===9){
+      ctx.save(); ctx.setStrokeStyle('#8089a8'); ctx.setLineWidth(1.4);
+      ctx.beginPath();
+      ctx.arc(cxNum, numY-4, label.length>1?11:8.5, 0, Math.PI*2, false);
       ctx.stroke(); ctx.restore();
     }
-    ctx.save(); ctx.setFont('Arial',12,'bold'); ctx.fillText(key.name, x0+2, y-8); ctx.restore();
+  });
+  ctx.restore();
+  if(conMarcoYEtiqueta){
+    ctx.save(); ctx.setFont('Arial',12,'bold'); ctx.setFillStyle('#2a2350');
+    ctx.fillText(key.name, x0+2, y-8); ctx.restore();
   }
 }
 
@@ -783,7 +790,7 @@ function renderToncom(seed){
   const compas=pick(['2/4','3/4','6/8']);
   // armadura legible: nº y tipo de alteración
   const n=Math.abs(key.sig);
-  const armadura = key.sig===0 ? 'Sin alt.' : (n+(key.sig>0?'♯':'♭'));
+  const armadura = key.sig===0 ? '—' : (n+(key.sig>0?'♯':'♭'));
   datosToncom={tonalidad:key.name, armadura, compas, key};
   const row=document.createElement('div'); row.className='ton-row';
   row.innerHTML=
@@ -848,7 +855,7 @@ function armGenTipo(){
   notes=armFit(notes); armReSpell(rl,notes); notes.sort((a,b)=>a.midi-b.midi);
   return {quality:q, label:ARM_QUAL[q].label, notes};
 }
-const ARM_MEMBER_LBL=['Tónica','3ª','5ª'];
+const ARM_MEMBER_LBL=['T','3ª','5ª'];
 function armGenInversion(){
   const q=pick(['PM','Pm']); const iv=ARM_QUAL[q].iv;
   const top=rint(3);                                   // 0=tónica, 1=3ª, 2=5ª arriba
