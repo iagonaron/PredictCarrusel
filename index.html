@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PreDict carrusel — trabajo auditivo de clase</title>
+<script src="https://cdn.jsdelivr.net/npm/vexflow@4.2.2/build/cjs/vexflow.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --text:#f3f0ff;
+    --muted:#bcb6e0;
+    --paper:#f7f6ff;
+    --ink:#16132b;
+    --c-rit:#34d399;   /* rítmico  — verde */
+    --c-mel:#5bd0ff;   /* melódico — cian */
+    --c-ton:#ff9a3c;   /* toncom   — naranja */
+    --c-arm:#bd92ff;   /* armónico — morado (un punto más claro) */
+    --line:rgba(255,255,255,.14);
+    --panel:rgba(20,16,44,.46);
+    --radius:18px;
+    --font:"Helvetica Neue",Arial,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+    min-height:100vh;
+    background:
+      radial-gradient(820px 480px at 10% -6%, rgba(52,211,153,.28), transparent 58%),
+      radial-gradient(760px 520px at 90% -2%, rgba(91,208,255,.28), transparent 56%),
+      radial-gradient(720px 460px at 50% 8%, rgba(255,214,120,.18), transparent 55%),
+      radial-gradient(900px 620px at 82% 104%, rgba(169,116,255,.32), transparent 60%),
+      radial-gradient(680px 520px at 6% 110%, rgba(255,154,60,.26), transparent 58%),
+      radial-gradient(560px 440px at 38% 64%, rgba(52,211,153,.14), transparent 60%),
+      radial-gradient(620px 500px at 96% 52%, rgba(91,208,255,.16), transparent 58%),
+      linear-gradient(160deg, #1d1545 0%, #140f34 36%, #0c0926 70%, #070512 100%);
+    background-attachment:fixed;
+  }
+  .wrap{max-width:1280px;margin:0 auto;padding:18px 22px 26px}
+
+  /* Cabecera */
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:14px}
+  .brand{display:flex;align-items:baseline;gap:4px;min-width:0}
+  .brand .pd{font-size:34px;font-weight:900;letter-spacing:-.02em;line-height:1}
+  .brand .pd .pre{
+    font-weight:900;
+    background:linear-gradient(120deg,#34d399,#5bd0ff 38%,#ff9a3c 70%,#a974ff);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .brand .pd .dict{color:var(--text);font-weight:300;opacity:.62}
+  .brand .carrusel{
+    font-family:"Snell Roundhand","Apple Chancery","Segoe Script","Brush Script MT",cursive;
+    font-size:30px;color:var(--c-mel);font-weight:500;transform:translateY(-4px) rotate(-9deg);
+    margin-left:-2px;
+    text-shadow:0 2px 18px rgba(91,208,255,.45);
+  }
+  .brand .tag{font-size:12.5px;color:var(--muted);font-weight:600;align-self:center;margin-left:8px}
+
+  .topactions{display:flex;align-items:center;gap:12px}
+  .btn-dado{
+    display:inline-flex;align-items:center;gap:10px;font:inherit;font-size:15px;font-weight:800;
+    color:#16132b;cursor:pointer;border:none;padding:13px 22px;border-radius:14px;
+    background:linear-gradient(120deg,#34d399,#5bd0ff 38%,#ff9a3c 70%,#a974ff);
+    box-shadow:0 10px 30px rgba(169,116,255,.4);transition:transform .06s,filter .15s;
+  }
+  .btn-dado:hover{filter:brightness(1.06)}
+  .btn-dado:active{transform:translateY(1px)}
+  .btn-dado svg{width:22px;height:22px}
+  .btn-pdf{
+    font:inherit;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;
+    border:1px solid var(--line);background:rgba(255,255,255,.04);
+    padding:12px 18px;border-radius:13px;transition:.15s;
+  }
+  .btn-pdf:hover{background:rgba(255,255,255,.09)}
+  .btn-pdf:disabled{opacity:.55;cursor:wait}
+
+  /* Rejilla en 3 filas, tarjetas unidas (compacto, iPad horizontal) */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-areas:
+      "rit rit"
+      "mel mel"
+      "ton arm";
+    gap:0;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:0 16px 38px rgba(0,0,0,.34);
+    background:var(--panel);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+  }
+  .r-rit{grid-area:rit} .r-mel{grid-area:mel} .r-ton{grid-area:ton} .r-arm{grid-area:arm}
+  section.q{
+    display:flex;flex-direction:column;
+    border-bottom:1px solid var(--line);
+  }
+  .r-ton{border-right:1px solid var(--line)}
+  .r-arm{border-bottom:1px solid var(--line)}
+  .r-rit, .r-mel{border-bottom:1px solid var(--line)}
+  .q-head{
+    display:flex;align-items:center;gap:9px;
+    padding:7px 12px;
+    position:relative;
+  }
+  .q-rit .q-head{background:linear-gradient(100deg, rgba(52,211,153,.30), rgba(91,208,255,.12) 50%, rgba(8,6,20,.55) 100%), rgba(8,6,20,.5)}
+  .q-mel .q-head{background:linear-gradient(100deg, rgba(91,208,255,.30), rgba(52,211,153,.12) 50%, rgba(8,6,20,.55) 100%), rgba(8,6,20,.5)}
+  .q-ton .q-head{background:linear-gradient(100deg, rgba(255,154,60,.30), rgba(255,122,120,.12) 50%, rgba(8,6,20,.55) 100%), rgba(8,6,20,.5)}
+  .q-arm .q-head{background:linear-gradient(100deg, rgba(169,116,255,.34), rgba(91,208,255,.12) 50%, rgba(8,6,20,.55) 100%), rgba(8,6,20,.5)}
+  .q-num{
+    font-size:11px;font-weight:800;color:#16132b;
+    width:22px;height:22px;display:flex;align-items:center;justify-content:center;
+    border-radius:7px;flex-shrink:0;
+  }
+  .q-rit .q-num{background:var(--c-rit)} .q-mel .q-num{background:var(--c-mel)}
+  .q-ton .q-num{background:var(--c-ton)} .q-arm .q-num{background:var(--c-arm)}
+  .q-rit .accent{color:var(--c-rit)} .q-mel .accent{color:var(--c-mel)}
+  .q-ton .accent{color:var(--c-ton)} .q-arm .accent{color:var(--c-arm)}
+  .q-head h2{font-size:14px;margin:0;font-weight:800;letter-spacing:-.2px}
+  .reps{margin-left:auto;display:inline-flex;gap:6px;align-items:center}
+  .rep-dot{width:9px;height:9px;border-radius:50%;display:inline-block;box-shadow:0 0 8px rgba(255,255,255,.18)}
+  .qt{letter-spacing:.04em}
+  .qt .b{font-weight:900}
+  .qt .f{font-weight:300;opacity:.85}
+
+  .canvas-area{padding:8px 10px;background:var(--paper);overflow-x:auto;flex:1;display:flex;align-items:center;justify-content:center}
+  .canvas-area svg{max-width:100%;height:auto}
+  #canvas-ritmico{padding:4px 10px}
+  #canvas-ritmico svg{max-height:150px}
+  #canvas-melodico svg{max-height:164px}
+
+  /* TonCom: tres datos en fila */
+  #canvas-toncom{background:var(--paper)}
+  .ton-row{display:flex;gap:12px;width:100%;justify-content:center}
+  .ton-cell{
+    flex:1;max-width:150px;border:1px solid #d9d4f0;border-radius:11px;overflow:hidden;
+    display:flex;flex-direction:column;background:#fff;
+  }
+  .ton-cell .tc-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#fff;font-weight:700;background:linear-gradient(120deg,#ff9a3c,#e87a2a);padding:6px;text-align:center}
+  .ton-cell .tc-value{padding:16px 8px;text-align:center;font-size:24px;font-weight:800;color:var(--ink)}
+  .ton-cell .tc-value.compas{line-height:.96}
+  .ton-cell .tc-value.compas small{display:block;font-size:24px}
+
+  /* Armónico: solución bajo cada acorde */
+  #canvas-armonico{background:var(--paper);flex-direction:column;gap:6px;justify-content:center;padding:10px 14px 6px}
+  .arm-pair{display:flex;gap:24px;width:100%;justify-content:space-around;align-items:flex-start}
+  .arm-block{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
+  .arm-cap{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#8a83ad;font-weight:700}
+  .arm-staff{width:100%;display:flex;justify-content:center;opacity:.5;filter:saturate(.4)}
+  .arm-staff svg{max-height:110px;width:auto;max-width:100%}
+  .arm-sol{
+    font-size:24px;font-weight:900;color:#4a3b73;letter-spacing:.01em;
+    background:rgba(169,116,255,.12);
+    border:1px solid rgba(169,116,255,.34);border-radius:12px;padding:7px 26px;
+  }
+
+  @media (max-width:980px){
+    .grid{grid-template-columns:1fr}
+    .brand .pd{font-size:28px}
+  }
+  @media print{
+    body{background:#fff}
+    .wrap{max-width:none;padding:0}
+    .topbar{display:none}
+    section.q{box-shadow:none;border:1px solid #ddd;break-inside:avoid}
+    .btn-mini{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <span class="pd"><span class="pre">PRE</span><span class="dict">DICT</span></span>
+      <span class="carrusel">carrusel</span>
+      <span class="tag">— trabajo auditivo de clase</span>
+    </div>
+    <div class="topactions">
+      <button class="btn-dado" onclick="generarTodo()" title="Aleatorizar toda la página">
+        <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/><circle cx="16" cy="8" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="8" cy="16" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/></svg>
+        Aleatorizar todo
+      </button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- 1 · RÍTMICO (fila completa) -->
+    <section class="q q-rit r-rit">
+      <div class="q-head">
+        <span class="q-num">1</span>
+        <h2 class="qt"><span class="accent b">RÍT</span><span class="accent f">MICO</span></h2><span class="reps" title="Repeticiones: 2"><span class="rep-dot" style="background:var(--c-rit)"></span><span class="rep-dot" style="background:var(--c-rit)"></span></span>
+      </div>
+      <div class="canvas-area" id="canvas-ritmico"></div>
+    </section>
+
+    <!-- 2 · MELÓDICO (fila completa) -->
+    <section class="q q-mel r-mel">
+      <div class="q-head">
+        <span class="q-num">2</span>
+        <h2 class="qt"><span class="accent b">MEL</span><span class="accent f">ÓDICO</span></h2><span class="reps" title="Repeticiones: 2"><span class="rep-dot" style="background:var(--c-mel)"></span><span class="rep-dot" style="background:var(--c-mel)"></span></span>
+      </div>
+      <div class="canvas-area" id="canvas-melodico"></div>
+    </section>
+
+    <!-- 3 · TONCOM (media fila) -->
+    <section class="q q-ton r-ton">
+      <div class="q-head">
+        <span class="q-num">3</span>
+        <h2 class="qt"><span class="accent b">TON</span><span class="accent f">COM</span></h2><span class="reps" title="Repeticiones: 1"><span class="rep-dot" style="background:var(--c-ton)"></span></span>
+      </div>
+      <div class="canvas-area" id="canvas-toncom"></div>
+    </section>
+
+    <!-- 4 · ARMÓNICO (media fila) -->
+    <section class="q q-arm r-arm">
+      <div class="q-head">
+        <span class="q-num">4</span>
+        <h2 class="qt"><span class="accent b">ARM</span><span class="accent f">ÓNICO</span></h2><span class="reps" title="Repeticiones: 2"><span class="rep-dot" style="background:var(--c-arm)"></span><span class="rep-dot" style="background:var(--c-arm)"></span></span>
+      </div>
+      <div class="canvas-area" id="canvas-armonico"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   PRNG con semilla — Mulberry32
+   ============================================================ */
+function mulberry32(a){
+  return function(){
+    a|=0; a=a+0x6D2B79F5|0;
+    let t=Math.imul(a^a>>>15,1|a);
+    t=t+Math.imul(t^t>>>7,61|t)^t;
+    return ((t^t>>>14)>>>0)/4294967296;
+  };
+}
+let RND=Math.random;
+function rint(n){return Math.floor(RND()*n);}          // 0..n-1
+function pick(arr){return arr[rint(arr.length)];}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){const j=rint(i+1);[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+/* ============================================================
+   RÍTMICO
+   Modelo: cada célula define las "notas" que la componen.
+   dur = código VexFlow; dots; tuplet (grupo); rest=true silencio.
+   beats = nº de pulsos que ocupa la célula.
+   En 2/4 y 3/4: pulso = negra. En 6/8: pulso = negra con puntillo.
+   ============================================================ */
+
+// Células para 2/4 y 3/4 (1 pulso = negra)
+const CELLS_SIMPLE = {
+  facil: [
+    {id:'negra',        beats:1, notes:[{dur:'q'}]},
+    {id:'sil_negra',    beats:1, notes:[{dur:'qr'}]},
+    {id:'2corcheas',    beats:1, notes:[{dur:'8'},{dur:'8'}], beam:true},
+    {id:'4semi',        beats:1, notes:[{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'}], beam:true},
+  ],
+  medio: [
+    {id:'tresillo',     beats:1, notes:[{dur:'8'},{dur:'8'},{dur:'8'}], beam:true, tuplet:3},
+    {id:'corchp_semi',  beats:1, notes:[{dur:'8',dots:1},{dur:'16'}], beam:true},
+    {id:'corch_2semi',  beats:1, notes:[{dur:'8'},{dur:'16'},{dur:'16'}], beam:true},
+    {id:'2semi_corch',  beats:1, notes:[{dur:'16'},{dur:'16'},{dur:'8'}], beam:true},
+    {id:'silcorch_corch',beats:1,notes:[{dur:'8r'},{dur:'8'}], beam:true},
+    {id:'sincopa_breve',beats:1, notes:[{dur:'16'},{dur:'8'},{dur:'16'}], beam:true},
+  ],
+};
+
+// Células para 6/8 (1 pulso = negra con puntillo)
+const CELLS_COMPOUND = {
+  facil: [
+    {id:'negrap',       beats:1, notes:[{dur:'q',dots:1}]},
+    {id:'3corcheas',    beats:1, notes:[{dur:'8'},{dur:'8'},{dur:'8'}], beam:true},
+    {id:'6semi',        beats:1, notes:[{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'}], beam:true},
+    {id:'negra_corch',  beats:1, notes:[{dur:'q'},{dur:'8'}], beam:false},
+    {id:'corch_negra',  beats:1, notes:[{dur:'8'},{dur:'q'}], beam:false},
+  ],
+  medio: [
+    {id:'corchp_semi_corch',beats:1, notes:[{dur:'8',dots:1},{dur:'16'},{dur:'8'}], beam:true},
+    {id:'silcorch_2corch',  beats:1, notes:[{dur:'8r'},{dur:'8'},{dur:'8'}], beam:true},
+    {id:'negra_2semi',  beats:1, notes:[{dur:'q'},{dur:'16'},{dur:'16'}], beam:true},
+    {id:'corch_4semi',  beats:1, notes:[{dur:'8'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'}], beam:true},
+    {id:'dosillo',      beats:1, notes:[{dur:'8'},{dur:'8'}], beam:true, tuplet:2},
+  ],
+  dificil: [
+    {id:'4semi_corch',  beats:1, notes:[{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'8'}], beam:true},
+    {id:'corchp_3semi', beats:1, notes:[{dur:'8',dots:1},{dur:'16'},{dur:'16'},{dur:'16'}], beam:true},
+  ]
+};
+
+// Genera un pentagrama simple (2/4 o 3/4) con 4 compases
+// Reglas: máximo 2 células medias por pentagrama, y distintas entre sí.
+function genPentagramaSimple(pulsos){
+  // pulsos por pentagrama: 3 compases completos + último compás (figura+silencio fija)
+  const pulsosLibres = pulsos*3 + (pulsos-2); // huecos donde podemos colocar medias
+  // decidir cuántas medias (0,1,2) y cuáles (distintas)
+  const nMedias = rint(3); // 0,1,2
+  const mediasElegidas = shuffle(CELLS_SIMPLE.medio).slice(0,nMedias);
+  // posiciones lineales disponibles (índice de pulso global, excluyendo las 2 fijas del final)
+  const posiciones = shuffle(Array.from({length:pulsosLibres},(_,i)=>i)).slice(0,nMedias);
+  const posMedia={};
+  posiciones.forEach((p,idx)=>posMedia[p]=mediasElegidas[idx]);
+
+  const compases=[];
+  let pg=0; // contador de pulso global libre
+  let silenciosExtra=0; // silencios de pulso (sil_negra) aparte del final
+  function pickFacil(){
+    // limita a 1 el silencio de pulso adicional
+    let pool=CELLS_SIMPLE.facil;
+    if(silenciosExtra>=1) pool=CELLS_SIMPLE.facil.filter(c=>c.id!=='sil_negra');
+    const c=pick(pool);
+    if(c.id==='sil_negra') silenciosExtra++;
+    return c;
+  }
+  for(let c=0;c<3;c++){
+    const compas=[];
+    for(let p=0;p<pulsos;p++){
+      compas.push(posMedia[pg]?posMedia[pg]:pickFacil());
+      pg++;
+    }
+    compases.push(compas);
+  }
+  // último compás: (pulsos-2) libres + negra + silencio de negra
+  const ult=[];
+  for(let i=0;i<pulsos-2;i++){ ult.push(posMedia[pg]?posMedia[pg]:pickFacil()); pg++; }
+  ult.push({id:'negra',beats:1,notes:[{dur:'q'}]});
+  ult.push({id:'sil_negra',beats:1,notes:[{dur:'qr'}]});
+  compases.push(ult);
+
+  asegurarAlivioSimple(compases,pulsos);
+  return compases;
+}
+
+function tieneNegra(compas){return compas.some(c=>c.id==='negra'||c.id==='negrap');}
+function asegurarAlivioSimple(compases,pulsos){
+  if(tieneNegra(compases[0])||tieneNegra(compases[1])) return;
+  const ci=rint(2);
+  const pi=rint(pulsos);
+  compases[ci][pi]={id:'negra',beats:1,notes:[{dur:'q'}]};
+}
+
+// Células de 6/8 que contienen semicorcheas (para garantizar su aparición)
+const SEMI_IDS_COMPOUND=['6semi','negra_2semi','corch_4semi','4semi_corch','corchp_3semi'];
+
+// Genera un compás compuesto 6/8 (2 pulsos) eligiendo de un pool con dificultad
+function genPentagramaCompound(){
+  // 6/8: 2 pulsos por compás, 4 compases
+  // límites por pentagrama: máx 2 medios, máx 1 difícil; si 1 difícil -> máx 1 medio
+  // sin repetir células; debe haber al menos una con semicorcheas
+  let intentos=0;
+  while(true){
+    intentos++;
+    const compases=[];
+    let medios=0, dificiles=0;
+    const usadas=new Set();
+    const objDificil = RND()<0.6 ? 1 : 0;
+    let maxMedio = objDificil===1 ? 1 : 2;
+    function pickNivel(nivel){
+      const disp=CELLS_COMPOUND[nivel].filter(c=>!usadas.has(c.id));
+      const pool=disp.length?disp:CELLS_COMPOUND[nivel];
+      const c=pick(pool);
+      usadas.add(c.id);
+      return c;
+    }
+    // primeros 3 compases (2 pulsos cada uno)
+    for(let c=0;c<3;c++){
+      const compas=[];
+      for(let p=0;p<2;p++){
+        let nivel='facil';
+        const r=RND();
+        if(dificiles<objDificil && r<0.18){nivel='dificil';dificiles++;}
+        else if(medios<maxMedio && r<0.45){nivel='medio';medios++;}
+        compas.push(pickNivel(nivel));
+      }
+      compases.push(compas);
+    }
+    // último compás: figura 1 pulso + silencio 1 pulso
+    compases.push([
+      pick(CELLS_COMPOUND.facil.filter(c=>['negrap','negra_corch','corch_negra','3corcheas'].includes(c.id))),
+      {id:'sil_negrap',beats:1,notes:[{dur:'q',dots:1,rest:true}]}
+    ]);
+    // pulso de alivio en compás 1 o 2
+    if(!(tieneNegra(compases[0])||tieneNegra(compases[1]))){
+      const ci=rint(2);
+      compases[ci][rint(2)]={id:'negrap',beats:1,notes:[{dur:'q',dots:1}]};
+    }
+    // ¿hay semicorcheas en los 3 primeros compases?
+    let haySemi=false;
+    compases.slice(0,3).forEach(c=>c.forEach(cell=>{if(SEMI_IDS_COMPOUND.includes(cell.id))haySemi=true;}));
+    // validar límites + presencia de semicorcheas
+    const limitesOk = medios<=maxMedio && dificiles<=objDificil && (objDificil===0||medios<=1);
+    if(limitesOk && haySemi) return compases;
+    if(intentos>300){
+      // fallback: si no hay semicorcheas, forzar 6semi (fácil) en un pulso libre del compás 1
+      if(!haySemi){ compases[0][rint(2)]={id:'6semi',beats:1,notes:[{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'},{dur:'16'}],beam:true}; }
+      return compases;
+    }
+  }
+}
+
+/* datos generados, para reutilizar en la exportación PDF */
+let datosRitmico=null, datosMelodico=null, datosToncom=null, datosArmonico=null;
+
+/* ---- Render rítmico con VexFlow ---- */
+function renderRitmico(seed){
+  const VF=Vex.Flow;
+  const cont=document.getElementById('canvas-ritmico');
+  cont.innerHTML='';
+  const div=document.createElement('div');
+  cont.appendChild(div);
+  const renderer=new VF.Renderer(div,VF.Renderer.Backends.SVG);
+  const W=1000, H=162;
+  renderer.resize(W,H);
+  const ctx=renderer.getContext();
+  ctx.setFont('Arial',10);
+
+  // métrica sorteada
+  const spec = pick([
+    {ts:'2/4', pulsos:2, compound:false},
+    {ts:'3/4', pulsos:3, compound:false},
+    {ts:'6/8', pulsos:2, compound:true},
+  ]);
+  const compases = spec.compound ? genPentagramaCompound() : genPentagramaSimple(spec.pulsos);
+  datosRitmico=[{spec, compases}];
+  dibujarPentagramaRitmico(ctx, spec, compases, 10, 26, W-20, 60);
+}
+
+/* Dibuja un pentagrama rítmico en un contexto y posición dados (reutilizable en pantalla y PDF) */
+function dibujarPentagramaRitmico(ctx, spec, compases, x0, y, totalW, firstExtra){
+  const VF=Vex.Flow;
+  const barW=(totalW-firstExtra)/4;
+  let x=x0;
+  compases.forEach((compas,ci)=>{
+    const isFirst=ci===0, isLast=ci===3;
+    const w=isFirst?barW+firstExtra:barW;
+    const stave=new VF.Stave(x,y,w);
+    for(let ln=0;ln<5;ln++) stave.setConfigForLine(ln,{visible:false});
+    if(isFirst){stave.addClef('treble').addTimeSignature(spec.ts);}
+    if(isLast){stave.setEndBarType(VF.Barline.type.END);}
+    stave.setContext(ctx).draw();
+    const notes=[];const tuplets=[];const beamGroups=[];
+    compas.forEach(cell=>{
+      const group=[];
+      cell.notes.forEach(n=>{
+        let dur=n.dur;
+        const isRest = n.rest || /r$/.test(dur);
+        const sn=new VF.StaveNote({keys:['b/4'],duration: isRest && !/r$/.test(dur) ? dur+'r' : dur, stem_direction:1});
+        if(n.dots){ for(let d=0;d<n.dots;d++) VF.Dot.buildAndAttach([sn],{all:true}); }
+        notes.push(sn); group.push(sn);
+      });
+      if(cell.tuplet){ tuplets.push(new VF.Tuplet(group,{num_notes:cell.tuplet, notes_occupied: cell.tuplet===3?2:(cell.tuplet===2?3:2)})); }
+      if(cell.beam){
+        // beam solo sobre figuras "beameables" (corchea o menor) y no silencios;
+        // agrupa por tramos contiguos para no incluir negras u otras figuras largas
+        const beamable=sn=>{ try{ if(sn.isRest&&sn.isRest()) return false; const d=sn.getDuration?sn.getDuration():''; return d==='8'||d==='16'||d==='32'||d==='64'; }catch(e){ return false; } };
+        let run=[];
+        const flush=()=>{ if(run.length>1) beamGroups.push(run.slice()); run=[]; };
+        group.forEach(sn=>{ if(beamable(sn)) run.push(sn); else flush(); });
+        flush();
+      }
+    });
+    const beams=beamGroups.map(g=>new VF.Beam(g));
+    const voice=new VF.Voice({num_beats: spec.compound?6:spec.pulsos, beat_value: spec.compound?8:4});
+    voice.setStrict(false); voice.addTickables(notes);
+    new VF.Formatter().joinVoices([voice]).format([voice], w-(isFirst?firstExtra+10:14));
+    voice.draw(ctx,stave);
+    beams.forEach(b=>b.setContext(ctx).draw());
+    tuplets.forEach(t=>t.setContext(ctx).draw());
+    x+=w;
+  });
+}
+
+
+/* ============================================================
+   MELÓDICO
+   ============================================================ */
+const SCALES={
+  // grados de la escala como semitonos sobre la tónica
+  major:[0,2,4,5,7,9,11],
+  minor:[0,2,3,5,7,8,11], // menor armónica (VII elevado)
+};
+// nombre de notas por tonalidad (tónica + modo + armadura para VexFlow)
+const KEYS=[
+  // sig = nº de alteraciones con signo (+sostenidos, -bemoles). vfsig = armadura VexFlow (siempre la de la relativa mayor para menores)
+  {name:'Do M',  tonic:'C', mode:'major', vfsig:'C',  sig:0},
+  {name:'La m',  tonic:'A', mode:'minor', vfsig:'C',  sig:0},   // relativa: Do M (0 alt)
+  {name:'Sol M', tonic:'G', mode:'major', vfsig:'G',  sig:1},
+  {name:'Mi m',  tonic:'E', mode:'minor', vfsig:'G',  sig:1},   // relativa: Sol M (1#)
+  {name:'Fa M',  tonic:'F', mode:'major', vfsig:'F',  sig:-1},
+  {name:'Re m',  tonic:'D', mode:'minor', vfsig:'F',  sig:-1},  // relativa: Fa M (1b)
+  {name:'Re M',  tonic:'D', mode:'major', vfsig:'D',  sig:2},
+  {name:'Si m',  tonic:'B', mode:'minor', vfsig:'D',  sig:2},   // relativa: Re M (2#)
+  {name:'Sib M', tonic:'Bb',mode:'major', vfsig:'Bb', sig:-2},
+  {name:'Sol m', tonic:'G', mode:'minor', vfsig:'Bb', sig:-2},  // relativa: Sib M (2b)
+];
+const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_FLATS=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+const TONIC_PC={'C':0,'C#':1,'Db':1,'D':2,'Eb':3,'E':4,'F':5,'F#':6,'G':7,'Ab':8,'A':9,'Bb':10,'B':11};
+
+// Pitch-classes que la armadura altera, por nº de alteraciones con signo.
+// sostenidos en orden F C G D A E B ; bemoles B E A D G C F
+const SHARP_ORDER=[6,1,8,3,10,5,0];   // F# C# G# D# A# E# B#  (pc)
+const FLAT_ORDER =[10,3,8,1,6,11,4];  // Bb Eb Ab Db Gb Cb Fb (pc)
+// nombre natural de cada letra-pc base (para detectar si una nota está "en armadura")
+function keySigPCs(sig){
+  // devuelve set de pitch-classes que están alteradas por la armadura
+  const s=new Set();
+  if(sig>0) for(let i=0;i<sig;i++) s.add(SHARP_ORDER[i]);
+  if(sig<0) for(let i=0;i<-sig;i++) s.add(FLAT_ORDER[i]);
+  return s;
+}
+
+// construir conjunto de pitches MIDI válidos en rango La3(57)-Sol5(79)
+function buildPitches(key){
+  const tpc=TONIC_PC[key.tonic];
+  const scale=SCALES[key.mode];
+  const useFlats = key.sig<0;        // armadura con bemoles -> nombrar con bemoles
+  const pitchset=new Set();
+  scale.forEach(s=>pitchset.add((tpc+s)%12));
+  const out=[];
+  for(let m=43;m<=79;m++){ // Sol2..Sol5 (cubre clave de fa y de sol)
+    if(pitchset.has(m%12)) out.push(m);
+  }
+  return {midis:out, useFlats, tpc};
+}
+
+// Devuelve la representación VexFlow de una nota y si necesita accidental explícito,
+// comparando su pitch-class real con lo que la armadura ya aplica.
+function midiToVF(m,useFlats,sigPCs){
+  const pc=m%12;
+  const oct=Math.floor(m/12)-1;
+  const name=(useFlats?NOTE_FLATS:NOTE_NAMES)[pc];
+  const letter=name[0].toLowerCase();
+  const acc=name.slice(1); // '', '#' o 'b'
+  // ¿la armadura ya altera esta letra? Comparamos por pc alterada.
+  const inSig=sigPCs.has(pc);
+  // accidental explícito necesario si la nota tiene alteración que NO está en la armadura,
+  // o si es natural pero su letra SÍ está alterada por la armadura (becuadro).
+  let accidental=null;
+  if(acc && !inSig) accidental=acc;            // p.ej. sensible Sol# en La m
+  // (no añadimos becuadros porque en estas escalas no aparecen notas naturales sobre grado alterado por armadura salvo casos que no se dan aquí)
+  return {key:letter+acc+'/'+oct, accidental};
+}
+
+function genMelodia(key, clef){
+  clef=clef||'treble';
+  const all=buildPitches(key);
+  const useFlats=all.useFlats, tpc=all.tpc;
+  // rango estricto por clave: sol = Do4..Mi5 (60..76) · fa = Sol2..Do4 (43..60)
+  const isBass=(clef==='bass');
+  const lo=isBass?43:60, hi=isBass?60:76;
+  const center=isBass?52:68;
+  const midis=all.midis.filter(m=>m>=lo&&m<=hi);
+  const tonicMidis=midis.filter(m=>m%12===tpc);
+  const leadingPC = key.mode==='minor' ? (tpc+11)%12 : -1;
+  const startTonic=(tonicMidis.length?tonicMidis:midis).reduce((a,b)=>Math.abs(b-center)<Math.abs(a-center)?b:a);
+
+  // posición de cada midi dentro de la escala (índice en el array ordenado de notas válidas)
+  // el intervalo diatónico = diferencia de índices + 1 (2ª=salto de 1 índice, 3ª=2, 4ª=3, 5ª=4, 8ª=7)
+  const idxOf=m=>midis.indexOf(m);
+  function intervaloDiat(a,b){ return Math.abs(idxOf(a)-idxOf(b))+1; } // 2,3,4,5,...,8
+
+  // intervalos permitidos (diatónicos): 2ª,3ª,4ª,5ª,6ª,8ª  -> índices 1,2,3,4,5,7
+  const PASOS_OK=[1,2,3,4,5,7];
+
+  // Valida la CALIDAD del intervalo combinando grados diatónicos y semitonos.
+  // Prohíbe aumentados y disminuidos.
+  function intervaloValido(a,b){
+    const paso=Math.abs(idxOf(a)-idxOf(b)); // 1=2ª,2=3ª,3=4ª,4=5ª,5=6ª,7=8ª
+    const semis=Math.abs(a-b);
+    switch(paso){
+      case 1: return semis===1||semis===2;    // 2ª menor o mayor (no aumentada=3)
+      case 2: return semis===3||semis===4;     // 3ª menor o mayor
+      case 3: return semis===5;                // 4ª justa (no aumentada=6)
+      case 4: return semis===7;                // 5ª justa (no disminuida=6)
+      case 5: return semis===8||semis===9;     // 6ª menor o mayor (no aumentada/disminuida)
+      case 7: return semis===12;               // 8ª justa
+      default: return false;
+    }
+  }
+  const dir=(a,b)=> b>a?1:-1;                  // dirección del movimiento
+
+  // Estado de "pendiente" tras cada nota:
+  //  null            -> nada pendiente, movimiento libre
+  //  {seg:true}      -> debe hacerse 1 segunda (cualquier dirección)
+  //  {seg:true,dir:d}-> debe hacerse 1 segunda en dirección d
+  // Reglas:
+  //  3ª suelta            -> {seg:true}                (1 segunda, cualquier dirección)
+  //  4ª/5ª/6ª suelta      -> {seg:true,dir:-saltoDir}  (1 segunda en dirección contraria)
+  //  arpegio (3ª+3ª o 3ª+4ª misma dir) -> {seg:true,dir:-saltoDir} (resuelve 2ª contraria)
+  //  2ª y 8ª              -> null
+
+  let best=null;
+  for(let intento=0;intento<3000;intento++){
+    const seq=[startTonic];
+    // estado: describe qué se permite en el SIGUIENTE movimiento
+    //  {tipo:'libre'}                         -> cualquier intervalo permitido
+    //  {tipo:'resolver', dir:d|null}          -> obligatorio 2ª (en dir d si se indica)
+    //  {tipo:'tras3a', dir:d}                 -> tras una 3ª: o 2ª (resuelve), o 2º salto de arpegio (3ª/4ª misma dir d)
+    let estado={tipo:'libre'};
+    let ok=true;
+    for(let i=1;i<9;i++){
+      const prev=seq[i-1];
+      let cands=midis.filter(m=>{
+        if(m===prev) return false;
+        const paso=Math.abs(idxOf(m)-idxOf(prev));
+        if(!PASOS_OK.includes(paso)) return false;
+        return intervaloValido(prev,m);
+      });
+
+      // Filtrar según estado
+      cands=cands.filter(m=>{
+        const paso=Math.abs(idxOf(m)-idxOf(prev));
+        const d=dir(prev,m);
+        if(estado.tipo==='resolver'){
+          if(paso!==1) return false;
+          if(estado.dir && d!==estado.dir) return false;
+          return true;
+        }
+        if(estado.tipo==='tras3a'){
+          // opción A: resolver por 2ª (cualquier dirección)
+          if(paso===1) return true;
+          // opción B: segundo salto del arpegio (3ª o 4ª) en la MISMA dirección
+          if((paso===2||paso===3) && d===estado.dir) return true;
+          return false;
+        }
+        return true; // libre
+      });
+
+      // Penúltima nota: si estamos libres, preferir preparar cierre (2ª u 8ª)
+      if(i===8 && estado.tipo==='libre'){
+        const libresCierre=cands.filter(m=>{const p=Math.abs(idxOf(m)-idxOf(prev));return p===1||p===7;});
+        if(libresCierre.length) cands=libresCierre;
+      }
+      // Si en la penúltima quedó pendiente 'tras3a', forzar que resuelva por 2ª (para poder cerrar)
+      if(i===8 && estado.tipo==='tras3a'){
+        const seg=cands.filter(m=>Math.abs(idxOf(m)-idxOf(prev))===1);
+        if(seg.length) cands=seg;
+      }
+
+      if(!cands.length){ ok=false; break; }
+      const nxt=pick(cands);
+      const paso=Math.abs(idxOf(nxt)-idxOf(prev));
+      const d=dir(prev,nxt);
+
+      // Transición de estado
+      if(estado.tipo==='resolver'){
+        estado={tipo:'libre'};                       // la 2ª resolvió
+      } else if(estado.tipo==='tras3a'){
+        if(paso===1){
+          estado={tipo:'libre'};                     // resolvió la 3ª por 2ª
+        } else {
+          // se completó un arpegio (3ª + 3ª/4ª misma dir) -> resolver 2ª contraria
+          estado={tipo:'resolver', dir:-d};
+        }
+      } else {
+        // estado libre: clasificar el intervalo que acabamos de hacer
+        if(paso===2){
+          estado={tipo:'tras3a', dir:d};             // 3ª: abre posible arpegio
+        } else if(paso===3||paso===4||paso===5){
+          estado={tipo:'resolver', dir:-d};          // 4ª/5ª/6ª suelta: 2ª contraria
+        } else {
+          estado={tipo:'libre'};                     // 2ª u 8ª
+        }
+      }
+      seq.push(nxt);
+    }
+    if(!ok||seq.length<9) continue;
+
+    // Cierre en tónica
+    const endCands=tonicMidis.filter(m=>{
+      if(m===seq[8]) return false;
+      const paso=Math.abs(idxOf(m)-idxOf(seq[8]));
+      if(!PASOS_OK.includes(paso)) return false;
+      if(!intervaloValido(seq[8],m)) return false;
+      const d=dir(seq[8],m);
+      if(estado.tipo==='resolver'){
+        if(paso!==1) return false;
+        if(estado.dir && d!==estado.dir) return false;
+        return true;
+      }
+      if(estado.tipo==='tras3a'){
+        return paso===1; // cerrar resolviendo la 3ª por 2ª
+      }
+      return paso===1 || paso===7; // libre: cerrar por 2ª u 8ª
+    });
+    if(!endCands.length) continue;
+    seq.push(pick(endCands));
+    best=seq;break;
+  }
+  if(!best){
+    // fallback robusto: por 2ªs válidas
+    best=[startTonic];
+    let cur=startTonic;
+    for(let i=1;i<9;i++){
+      const segundas=midis.filter(m=>Math.abs(idxOf(m)-idxOf(cur))===1 && intervaloValido(cur,m));
+      const elegido = segundas.length ? segundas.reduce((a,b)=>Math.abs(b-center)<Math.abs(a-center)?b:a) : cur;
+      best.push(elegido); cur=elegido;
+    }
+    const cierre=tonicMidis.filter(m=>m!==cur && Math.abs(idxOf(m)-idxOf(cur))<=1 && intervaloValido(cur,m));
+    best.push(cierre.length?cierre[0]:tonicMidis[0]);
+  }
+  return {seq:best,useFlats,leadingPC,clef};
+}
+
+function renderMelodico(seed){
+  const VF=Vex.Flow;
+  const cont=document.getElementById('canvas-melodico');
+  cont.innerHTML='';
+  const div=document.createElement('div');
+  cont.appendChild(div);
+  const renderer=new VF.Renderer(div,VF.Renderer.Backends.SVG);
+  const W=1000, rowH=178;
+  renderer.resize(W,rowH);
+  const ctx=renderer.getContext();
+
+  // un solo ejercicio: clave 50% sol / 50% fa y tonalidad sorteada
+  const clef = RND()<0.5 ? 'bass' : 'treble';
+  const key = pick(KEYS);
+  const mel=genMelodia(key, clef);
+  datosMelodico=[{key, mel}];
+  dibujarPentagramaMelodico(ctx, key, mel, 10, 30, W-20, true);
+}
+
+/* Dibuja un pentagrama melódico en contexto y posición dados (reutilizable en pantalla y PDF) */
+function dibujarPentagramaMelodico(ctx, key, mel, x0, y, w, conMarcoYEtiqueta){
+  const VF=Vex.Flow;
+  const {seq,useFlats,leadingPC}=mel;
+  const clef=mel.clef||'treble';
+  const stave=new VF.Stave(x0,y,w);
+  stave.addClef(clef).addKeySignature(key.vfsig);
+  stave.setContext(ctx).draw();
+  const sigPCs=keySigPCs(key.sig);
+  const notes=seq.map((m,i)=>{
+    let v; const pc=m%12;
+    if(pc===leadingPC && useFlats){
+      const oct=Math.floor(m/12)-1; const name=NOTE_NAMES[pc];
+      v={key:name[0].toLowerCase()+name.slice(1)+'/'+oct, accidental:name.slice(1)||null};
+    } else { v=midiToVF(m,useFlats,sigPCs); }
+    const sn=new VF.StaveNote({keys:[v.key],duration:'w',clef});
+    if(v.accidental) sn.addModifier(new VF.Accidental(v.accidental),0);
+    if(i===0) sn.setStyle({fillStyle:'#7a1f1f',strokeStyle:'#7a1f1f'});
+    return sn;
+  });
+  const voice=new VF.Voice({num_beats:40,beat_value:4});
+  voice.setStrict(false); voice.addTickables(notes);
+  new VF.Formatter().joinVoices([voice]).format([voice],w-110);
+  voice.draw(ctx,stave);
+  // números 1..10 bajo cada nota
+  const numY = y + 130;   // bajo el pentagrama
+  ctx.save(); ctx.setFont('Arial',12,'bold'); ctx.setFillStyle('#8089a8');
+  notes.forEach((n,i)=>{ let x; try{ x=n.getAbsoluteX(); }catch(e){ x=null; } if(x!=null) ctx.fillText(String(i+1), x-3, numY); });
+  ctx.restore();
+  if(conMarcoYEtiqueta){
+    const bb=notes[0].getBoundingBox();
+    if(bb){
+      ctx.save(); ctx.setStrokeStyle('#7a1f1f'); ctx.setLineWidth(1.5);
+      const pad=5;
+      ctx.rect(bb.getX()-pad,bb.getY()-pad,bb.getW()+pad*2,bb.getH()+pad*2);
+      ctx.stroke(); ctx.restore();
+    }
+    ctx.save(); ctx.setFont('Arial',12,'bold'); ctx.fillText(key.name, x0+2, y-8); ctx.restore();
+  }
+}
+
+/* ============================================================
+   TONCOM
+   ============================================================ */
+function renderToncom(seed){
+  const cont=document.getElementById('canvas-toncom');
+  cont.innerHTML='';
+  const key=pick(KEYS);
+  const compas=pick(['2/4','3/4','6/8']);
+  // armadura legible: nº y tipo de alteración
+  const n=Math.abs(key.sig);
+  const armadura = key.sig===0 ? 'Sin alt.' : (n+(key.sig>0?'♯':'♭'));
+  datosToncom={tonalidad:key.name, armadura, compas, key};
+  const row=document.createElement('div'); row.className='ton-row';
+  row.innerHTML=
+    '<div class="ton-cell"><div class="tc-label">Tonalidad</div><div class="tc-value">'+key.name+'</div></div>'+
+    '<div class="ton-cell"><div class="tc-label">Armadura</div><div class="tc-value">'+armadura+'</div></div>'+
+    '<div class="ton-cell"><div class="tc-label">Compás</div><div class="tc-value compas">'+compas.split('/')[0]+'<small>'+compas.split('/')[1]+'</small></div></div>';
+  cont.appendChild(row);
+}
+
+/* ============================================================
+   ARMÓNICO
+   a) Tipo de tríada: PM 35% · Pm 35% · Aum 15% · Dis 15%
+   b) Inversión: tríada (PM/Pm) que puede estar invertida;
+      la solución es la nota más aguda (Tónica / 3ª / 5ª).
+   Ambos acordes dibujados en clave de sol; solución debajo.
+   ============================================================ */
+const ARM_QUAL={
+  PM: {iv:[0,4,7], label:'PM'},   // perfecto mayor
+  Pm: {iv:[0,3,7], label:'Pm'},   // perfecto menor
+  Aum:{iv:[0,4,8], label:'Aum'},  // aumentado
+  Dis:{iv:[0,3,6], label:'Dis'},  // disminuido
+};
+// raíces de cifrado limpio por calidad (letra + alteración en semitonos)
+const ARM_ROOTS={
+  PM: [['C',0],['G',0],['D',0],['A',0],['E',0],['F',0],['B',-1]],
+  Pm: [['A',0],['E',0],['D',0],['G',0],['C',0],['B',0],['F',0]],
+  Aum:[['C',0],['F',0],['G',0],['D',0],['E',0],['A',0]],
+  Dis:[['B',0],['C',0],['D',0],['E',0],['A',0],['G',0]],
+};
+const ARM_LETTERS=['C','D','E','F','G','A','B'];
+const ARM_LPC={C:0,D:2,E:4,F:5,G:7,A:9,B:11};
+function armSpell(rootLetter, member, midi){
+  const li=((ARM_LETTERS.indexOf(rootLetter)+[0,2,4][member])%7+7)%7;
+  const letter=ARM_LETTERS[li];
+  const naturalPc=ARM_LPC[letter];
+  const targetPc=((midi%12)+12)%12;
+  let acc=targetPc-naturalPc; while(acc>6)acc-=12; while(acc<-6)acc+=12;
+  const octave=Math.round((midi-naturalPc)/12)-1;
+  return {letter,acc,octave,midi,member};
+}
+function armAccSym(a){return a===1?'#':a===-1?'b':a===2?'##':a===-2?'bb':'';}
+function armVexKey(n){return n.letter.toLowerCase()+armAccSym(n.acc)+'/'+n.octave;}
+function armFit(notes){
+  let shift=0,g=0;
+  const mn=()=>Math.min(...notes.map(n=>n.midi))+shift, mx=()=>Math.max(...notes.map(n=>n.midi))+shift;
+  while(mn()<60 && g++<6) shift+=12;   // mantener dentro/encima del pentagrama de sol
+  while(mx()>81 && g++<14) shift-=12;
+  return notes.map(n=>({...n,midi:n.midi+shift}));
+}
+function armReSpell(rl,notes){ notes.forEach(n=>{const s=armSpell(rl,n.member,n.midi);n.letter=s.letter;n.acc=s.acc;n.octave=s.octave;}); }
+function armPickQualityA(){
+  const r=RND();
+  if(r<0.3333) return 'PM';
+  if(r<0.6666) return 'Pm';
+  // tercio restante: aumentado o disminuido a partes iguales
+  return RND()<0.5 ? 'Aum' : 'Dis';
+}
+function armGenTipo(){
+  const q=armPickQualityA(); const [rl,ra]=pick(ARM_ROOTS[q]);
+  const rootMidi=60+ARM_LPC[rl]+ra; const iv=ARM_QUAL[q].iv;
+  let notes=iv.map((s,k)=>armSpell(rl,k,rootMidi+s));
+  notes=armFit(notes); armReSpell(rl,notes); notes.sort((a,b)=>a.midi-b.midi);
+  return {quality:q, label:ARM_QUAL[q].label, notes};
+}
+const ARM_MEMBER_LBL=['Tónica','3ª','5ª'];
+function armGenInversion(){
+  const q=pick(['PM','Pm']); const iv=ARM_QUAL[q].iv;
+  const top=rint(3);                                   // 0=tónica, 1=3ª, 2=5ª arriba
+  const [rl,ra]=pick(ARM_ROOTS[q]); const rootMidi=60+ARM_LPC[rl]+ra;
+  // voicing cerrado con el miembro `top` como voz más aguda: los miembros por encima bajan 8ª
+  let notes=iv.map((s,k)=>{ let midi=rootMidi+s; if(k>top) midi-=12; return armSpell(rl,k,midi); });
+  notes=armFit(notes); armReSpell(rl,notes); notes.sort((a,b)=>a.midi-b.midi);
+  const topMember=notes[notes.length-1].member;        // 0/1/2
+  return {quality:q, notes, topMember, sol:ARM_MEMBER_LBL[topMember]};
+}
+function armStaffSVG(notes, w){
+  const VF=Vex.Flow;
+  const host=document.createElement('div');
+  const renderer=new VF.Renderer(host,VF.Renderer.Backends.SVG);
+  renderer.resize(w,110);
+  const ctx=renderer.getContext();
+  const stave=new VF.Stave(6,8,w-12);
+  stave.addClef('treble');
+  stave.setContext(ctx).draw();
+  const keys=notes.map(armVexKey);
+  const sn=new VF.StaveNote({keys,duration:'w',clef:'treble'});
+  notes.forEach((n,k)=>{ if(n.acc!==0) sn.addModifier(new VF.Accidental(armAccSym(n.acc)),k); });
+  const v=new VF.Voice({num_beats:4,beat_value:4}); v.setStrict(false); v.addTickables([sn]);
+  new VF.Formatter().joinVoices([v]).format([v],w-80);
+  v.draw(ctx,stave);
+  return host;
+}
+function renderArmonico(seed){
+  const cont=document.getElementById('canvas-armonico');
+  cont.innerHTML='';
+  const a=armGenTipo();
+  const b=armGenInversion();
+  datosArmonico={a,b};
+  const pair=document.createElement('div'); pair.className='arm-pair';
+
+  const blkA=document.createElement('div'); blkA.className='arm-block';
+  const capA=document.createElement('div'); capA.className='arm-cap'; capA.textContent='Acorde 1 · tipo';
+  const stA=document.createElement('div'); stA.className='arm-staff'; stA.appendChild(armStaffSVG(a.notes,200));
+  const solA=document.createElement('div'); solA.className='arm-sol'; solA.textContent=a.label;
+  blkA.appendChild(capA); blkA.appendChild(stA); blkA.appendChild(solA);
+
+  const blkB=document.createElement('div'); blkB.className='arm-block';
+  const capB=document.createElement('div'); capB.className='arm-cap'; capB.textContent='Acorde 2 · nota más aguda';
+  const stB=document.createElement('div'); stB.className='arm-staff'; stB.appendChild(armStaffSVG(b.notes,200));
+  const solB=document.createElement('div'); solB.className='arm-sol'; solB.textContent=b.sol;
+  blkB.appendChild(capB); blkB.appendChild(stB); blkB.appendChild(solB);
+
+  pair.appendChild(blkA); pair.appendChild(blkB);
+  cont.appendChild(pair);
+}
+
+/* ============================================================
+   ORQUESTACIÓN
+   ============================================================ */
+// Renderiza los 4 ejercicios a partir de UNA semilla (orden fijo => reproducible).
+function renderConSemilla(seed){
+  RND=mulberry32(seed);
+  renderRitmico(seed);
+  renderMelodico(seed);
+  renderToncom(seed);
+  renderArmonico(seed);
+}
+
+const PC_SEED_KEY='predict_carrusel_seed';
+function guardarSesion(seed){
+  try{ localStorage.setItem(PC_SEED_KEY, String(seed)); }catch(e){}
+}
+
+// botón individual (no usado en la UI actual, se mantiene por compatibilidad)
+function generar(tipo){
+  const seed=Math.floor(Math.random()*1000000);
+  RND=mulberry32(seed);
+  if(tipo==='ritmico') renderRitmico(seed);
+  if(tipo==='melodico') renderMelodico(seed);
+  if(tipo==='toncom') renderToncom(seed);
+  if(tipo==='armonico') renderArmonico(seed);
+}
+
+// "Aleatorizar todo": pide confirmación antes de sobrescribir el ejercicio actual.
+function generarTodo(){
+  const hayActual = (()=>{ try{ return !!localStorage.getItem(PC_SEED_KEY); }catch(e){ return false; } })();
+  if(hayActual && !confirm('¿Generar un ejercicio nuevo? Se perderá el actual que tienes en pantalla.')) return;
+  const seed=Math.floor(Math.random()*1000000);
+  renderConSemilla(seed);
+  guardarSesion(seed);
+}
+
+// PDF pendiente de rediseño (media carilla).
+async function exportarTodo(){
+  alert('El PDF se está rediseñando. Por ahora usa "Aleatorizar todo" en pantalla.');
+}
+
+// Al cargar: si hay una sesión guardada, preguntar si continuar o empezar de nuevo.
+window.addEventListener('load',()=>{
+  let prev=null;
+  try{ prev=localStorage.getItem(PC_SEED_KEY); }catch(e){}
+  if(prev!==null && prev!==''){
+    if(confirm('Tienes un ejercicio ya generado. ¿Quieres continuar donde lo dejaste?\n\nAceptar = continuar · Cancelar = generar uno nuevo')){
+      renderConSemilla(Number(prev));
+      return;
+    }
+  }
+  const seed=Math.floor(Math.random()*1000000);
+  renderConSemilla(seed);
+  guardarSesion(seed);
+});
+</script>
+</body>
+</html>
