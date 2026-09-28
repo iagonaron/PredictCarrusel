@@ -2,6 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<script>/* (28-sep-2026, Iago) ?pantalla=1 = la espiral de la cuenta Tester en el portal: el carrusel del iPad en la pantalla de clase, sin dado */if(/[?&]pantalla=1(&|$)/.test(location.search))document.documentElement.classList.add('pc-pantalla');</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PreDict carrusel — trabajo auditivo de clase</title>
 <link rel="manifest" href="manifest.json">
@@ -82,6 +83,17 @@
   .btn-dado:hover{filter:brightness(1.06)}
   .btn-dado:active{transform:translateY(1px)}
   .btn-dado svg{width:22px;height:22px}
+  /* (28-sep-2026, Iago) «Solo quiero el dado, naranja, en el iPad»: botón liso en el naranja de PreDict, dado y texto en blanco */
+  .btn-dado{color:#fff;background:#ea580c;box-shadow:0 10px 26px rgba(234,88,12,.38)}
+  .btn-dado:hover{filter:brightness(1.08)}
+  /* (28-sep-2026) MODO PANTALLA (?pantalla=1, la espiral de Tester): el mismo carrusel del iPad, sin dado; arriba a la
+     derecha, en pequeño, de cuándo es. Si no se puede leer, un aviso en lugar de los ejercicios. */
+  html.pc-pantalla .btn-dado{display:none}
+  .pc-origen{display:none;font-size:13px;font-weight:700;color:var(--muted);white-space:nowrap;letter-spacing:.01em}
+  html.pc-pantalla .pc-origen:not(:empty){display:inline-block}
+  .pc-aviso{margin:40px auto;max-width:560px;padding:22px 26px;border-radius:16px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:var(--text);font-size:17px;font-weight:700;line-height:1.45;text-align:center}
+  .pc-aviso[hidden]{display:none}
   .btn-pdf{
     font:inherit;font-size:13.5px;font-weight:700;color:var(--text);cursor:pointer;
     border:1px solid var(--line);background:rgba(255,255,255,.04);
@@ -210,6 +222,7 @@
       </span>
     </div>
     <div class="topactions">
+      <span class="pc-origen" id="pcOrigen"></span>
       <button class="btn-dado" onclick="generarTodo()" title="Aleatorizar toda la página">
         <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/><circle cx="16" cy="8" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="8" cy="16" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/></svg>
         Aleatorizar todo
@@ -217,6 +230,7 @@
     </div>
   </div>
 
+  <div class="pc-aviso" id="pcAviso" role="status" hidden></div>
   <div class="grid">
     <!-- 1 · RÍTMICO (fila completa) -->
     <section class="q q-rit r-rit">
@@ -995,6 +1009,73 @@ function renderConSemilla(seed){
 const PC_SEED_KEY='predict_carrusel_seed';
 function guardarSesion(seed){
   try{ localStorage.setItem(PC_SEED_KEY, String(seed)); }catch(e){}
+  publicarSemilla(seed);   // (28-sep-2026) para la espiral de la pantalla de clase
+}
+
+/* ============================================================
+   (28-sep-2026, Iago) EL MISMO CARRUSEL EN LA PANTALLA DE CLASE
+   «Lo genero en el iPad y quiero ponerlo en la pantalla sin más fricción» (con la espiral de la cuenta Tester).
+   · Vista normal (el iPad): cada carrusel que se ve (nuevo, continuado o «Aleatorizar todo») deja su semilla en la
+     base: app_config, clave carrusel_ge_semilla = {semilla, en}. Solo ese número: ni ejercicios ni datos de alumnos.
+   · ?pantalla=1 (la espiral): dibuja ESA semilla directamente, sin ventanas, sin dado y sin tocar lo guardado en ese
+     aparato. No se actualiza sola (así los alumnos no ven las respuestas del siguiente): para el siguiente, otra vez
+     la espiral. La misma semilla da siempre los mismos cuatro ejercicios (renderConSemilla).
+   Para quitarlo: borrar este bloque, la llamada de guardarSesion, las dos líneas de «pantalla» del arranque y la
+   línea del <head>.
+   ============================================================ */
+const PC_SB='https://woiptkyrxkbpnvioypit.supabase.co';
+const PC_SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndvaXB0a3lyeGticG52aW95cGl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NzI2ODYsImV4cCI6MjA5MjA0ODY4Nn0.B2nKgj5rD0rkdLeMIrd9KgD8lUPWsBT4Y7aCtmnvbjA';
+const PC_CLAVE='carrusel_ge_semilla';
+const PC_PANTALLA=/[?&]pantalla=1(&|$)/.test(location.search);
+function publicarSemilla(seed){
+  if(PC_PANTALLA) return;
+  const n=Number(seed); if(!Number.isFinite(n)) return;
+  const ahora=new Date().toISOString();
+  try{
+    fetch(PC_SB+'/rest/v1/app_config?on_conflict=key',{ method:'POST', keepalive:true,
+      headers:{ apikey:PC_SB_KEY, Authorization:'Bearer '+PC_SB_KEY, 'Content-Type':'application/json',
+                Prefer:'resolution=merge-duplicates,return=minimal' },
+      body:JSON.stringify({ key:PC_CLAVE, value:{ semilla:n, en:ahora }, updated_at:ahora })
+    }).catch(()=>{});
+  }catch(e){}
+}
+function horaDe(iso){
+  const d=new Date(iso); if(isNaN(d)) return '';
+  const hh=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+  const hoy=new Date();
+  if(d.toDateString()===hoy.toDateString()) return hh;
+  const M=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return d.getDate()+'-'+M[d.getMonth()]+' '+hh;
+}
+function avisoPantalla(t){
+  const a=document.getElementById('pcAviso'), g=document.querySelector('.grid');
+  if(a){ a.textContent=t; a.hidden=false; }
+  if(g) g.style.display='none';
+}
+/* en la pantalla de clase el carrusel ocupa la pantalla, como en el iPad: solo se agranda (nunca se achica) */
+function ajustarPantalla(){
+  const w=document.querySelector('.wrap'); if(!w) return;
+  w.style.zoom='';
+  const r=w.getBoundingClientRect(); if(!r.width || !r.height) return;
+  const k=Math.min(innerWidth/r.width, innerHeight/r.height)*0.98;
+  if(k>1.02) w.style.zoom=Math.min(k,2.2).toFixed(3);
+}
+let _ajusteT=0;
+function abrirPantalla(){
+  fetch(PC_SB+'/rest/v1/app_config?select=value&key=eq.'+PC_CLAVE,{ cache:'no-store',
+    headers:{ apikey:PC_SB_KEY, Authorization:'Bearer '+PC_SB_KEY } })
+  .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+  .then(f=>{
+    const v=(f && f[0] && f[0].value) || null;
+    const n=v ? Number(v.semilla) : NaN;
+    if(!Number.isFinite(n)){ avisoPantalla('Todavía no hay ningún carrusel generado en el iPad.'); return; }
+    renderConSemilla(n);
+    const h=v.en ? horaDe(v.en) : '';
+    const o=document.getElementById('pcOrigen'); if(o && h) o.textContent='Del iPad · '+h;
+    ajustarPantalla(); setTimeout(ajustarPantalla,600);
+    window.addEventListener('resize',()=>{ clearTimeout(_ajusteT); _ajusteT=setTimeout(ajustarPantalla,150); });
+  })
+  .catch(()=>avisoPantalla('No he podido leer el carrusel del iPad. Comprueba la conexión y vuelve a pulsar la espiral.'));
 }
 
 // botón individual (no usado en la UI actual, se mantiene por compatibilidad)
@@ -1019,11 +1100,13 @@ function generarTodo(){
 
 // Al cargar: si hay una sesión guardada, preguntar si continuar o empezar de nuevo.
 window.addEventListener('load',()=>{
+  if(PC_PANTALLA){ abrirPantalla(); return; }   // (28-sep-2026) la espiral: sin ventanas ni dado
   let prev=null;
   try{ prev=localStorage.getItem(PC_SEED_KEY); }catch(e){}
   if(prev!==null && prev!==''){
     if(confirm('Tienes un ejercicio ya generado. ¿Quieres continuar donde lo dejaste?\n\nAceptar = continuar · Cancelar = generar uno nuevo')){
       renderConSemilla(Number(prev));
+      publicarSemilla(prev);   // (28-sep-2026) el que sigue en el iPad es el que sale en la pantalla
       return;
     }
   }
