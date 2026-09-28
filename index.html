@@ -1052,13 +1052,14 @@ function avisoPantalla(t){
   if(a){ a.textContent=t; a.hidden=false; }
   if(g) g.style.display='none';
 }
-/* en la pantalla de clase el carrusel ocupa la pantalla, como en el iPad: solo se agranda (nunca se achica) */
+/* en la pantalla de clase el carrusel ocupa la ventana entera, como en el iPad, y se ve todo sin bajar:
+   se agranda (hasta ×2,2) o se achica un poco (hasta ×0,7) según el tamaño de la ventana */
 function ajustarPantalla(){
   const w=document.querySelector('.wrap'); if(!w) return;
   w.style.zoom='';
   const r=w.getBoundingClientRect(); if(!r.width || !r.height) return;
   const k=Math.min(innerWidth/r.width, innerHeight/r.height)*0.98;
-  if(k>1.02) w.style.zoom=Math.min(k,2.2).toFixed(3);
+  if(Math.abs(k-1)>0.02) w.style.zoom=Math.max(0.7, Math.min(k,2.2)).toFixed(3);
 }
 let _ajusteT=0;
 function abrirPantalla(){
