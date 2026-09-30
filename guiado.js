@@ -180,6 +180,8 @@ function sonidoUI(n,t){ try{ const c=ac(); t=(t==null)?c.currentTime+0.02:t; swi
   case 'escribe': tonoUI(660,t,0.09,'triangle',0.11); tonoUI(1040,t+0.02,0.06,'sine',0.05); break;       // «place» del PRO, más suave
   case 'atencion': tonoUI(520,t,0.08,'triangle',0.09); break;                                              // «nav» del PRO
   case 'fin': [523,659,784,1047,1319].forEach((f,i)=>tonoUI(f,t+i*0.11,0.32,'triangle',0.22)); barridoUI(t,0.5,0.09); break;   // «winner» del PRO
+  case 'tic': tonoUI(2000,t,0.03,'square',0.085); tonoUI(1040,t+0.002,0.022,'sine',0.03); break;   // tic-tac de reloj (el del Carrusel PRO)
+  case 'tac': tonoUI(1550,t,0.03,'square',0.085); tonoUI(800,t+0.002,0.022,'sine',0.03); break;
   case 'revela0': case 'revela1': case 'revela2': { const f=680+Number(n.slice(-1))*58; tonoUI(f,t,0.09,'triangle',0.14); tonoUI(f*1.5,t+0.02,0.07,'sine',0.05); break; }   // «correctTick» del PRO
 } }catch(e){} }
 function brillo(t){ const c=ac(); t=(t==null)?c.currentTime+0.02:t;
@@ -246,6 +248,7 @@ function cortar(){
   EPOCA++; tick();
   try{ if(PIANO) PIANO.stop(); }catch(e){}
   VIVOS.forEach(v=>{ try{ v.n.stop(); }catch(e){} }); VIVOS=[];
+  musCorta();
 }
 async function pausa(on){
   if(!AC) return;
@@ -418,22 +421,27 @@ async function pase(et,sub,programa,pre,pista){
   await hasta(tFin+S(0.5));
 }
 /* tiempo para escribir: anillo que se vacía + segundos */
-async function escribir(seg,big,sub,pieTexto,eventos){
+async function escribir(seg,big,sub,pieTexto,eventos,corte){   // corte: se para cuando quedan esos segundos (finEjercicio)
   cartel(big,sub||'');
   const P=ESC.pie;
   P.innerHTML='<div class="pcg-reloj"><svg viewBox="0 0 100 100"><circle class="fondo" cx="50" cy="50" r="44"/><circle class="arco" cx="50" cy="50" r="44" style="animation-duration:'+S(seg)+'s"/></svg><b>'+seg+'</b></div>'+
     (pieTexto?'<div class="pcg-reloj-t" style="font-size:31px;font-weight:700;max-width:1120px;line-height:1.3">'+pieTexto+'</div>':'');
-  const b=$('b',P), t0=ahora();
-  for(let k=1;k<seg;k++){ await hasta(t0+S(k)); b.textContent=seg-k; (eventos||[]).forEach(e=>{ if(e[0]===k) try{ e[1](); }catch(x){ console.error(x); } }); }
-  await hasta(t0+S(seg)); P.innerHTML='';
+  const b=$('b',P), t0=ahora(), fin=seg-(corte||0);
+  for(let k=1;k<fin;k++){ await hasta(t0+S(k)); b.textContent=seg-k; (eventos||[]).forEach(e=>{ if(e[0]===k) try{ e[1](); }catch(x){ console.error(x); } }); }
+  await hasta(t0+S(fin)); P.innerHTML='';
 }
-/* final de cada ejercicio: 10 s para terminar + «Solución en 5…1» (sin sonido) */
+/* (30-sep-2026) un texto abajo, sin reloj (p. ej., «Ve escribiendo» mientras suena el acorde 2) */
+function pieTexto(t){ if(!ESC) return; ESC.pie.innerHTML=t?'<div class="pcg-reloj-t" style="font-size:31px;font-weight:700">'+t+'</div>':''; }
+/* final de cada ejercicio: 10 s para terminar. (30-sep-2026, Iago) «en lugar de 5 segundos extra, que sean los últimos 5
+   del tiempo que ya había abajo»: 10…6 en el reloj de abajo y 5…1 en el centro («Solución en»), con un tic-tac que avisa
+   de que se acaba el tiempo (antes, 10 + 5 s) */
 async function finEjercicio(sub,pieTexto){
-  sonidoUI('escribe'); await escribir(10,'Termina de completar el ejercicio',sub||'',pieTexto);
+  sonidoUI('escribe'); await escribir(10,'Termina de completar el ejercicio',sub||'',pieTexto,null,5);
   cartel('','');
-  const V=ESC.velo, n=$('.n',V); V.classList.add('on');
+  const V=ESC.velo, n=$('.n',V); n.textContent='5'; V.classList.add('on');
   const t0=ahora();
-  for(let k=0;k<5;k++){ await hasta(t0+S(k)); n.textContent=String(5-k); }
+  for(let k=0;k<5;k++) sonidoUI(k%2?'tac':'tic',t0+S(k)+0.01);
+  for(let k=1;k<5;k++){ await hasta(t0+S(k)); n.textContent=String(5-k); }
   await hasta(t0+S(5)); V.classList.remove('on');
 }
 /* corrección: se enseña la solución y abajo a la derecha, discreto y sin sonido, los segundos que dura (~20) */
@@ -914,7 +922,7 @@ function dibujaArmonico(host,a,b){
   altOscura(Asol); altOscura(Afull);
   const yM=Asol.ys[0], cxM=Asol.cx, RW=50, RH=28, GAP=6.5;
   // por DETRÁS de la nota central y de su alteración (que se siguen leyendo), por encima de las líneas del pentagrama
-  const slots=sv('g',{class:'pcg-oc'}), fila={};
+  const slots=sv('g',{class:'pcg-oc pcg-slots'}), fila={};
   if(Asol.g.parentNode===svg2) svg2.insertBefore(slots,Asol.g); else svg2.appendChild(slots);
   const cajaVoz=(k,etq,yTop)=>{ const g=sv('g',{class:'pcg-slot pcg-voz'},slots); fila[k]=g;
     sv('rect',{x:cxM-RW/2,y:yTop,width:RW,height:RH,rx:5},g);
@@ -922,6 +930,11 @@ function dibujaArmonico(host,a,b){
   cajaVoz(2,'tiple',yM-GAP-RH);
   cajaVoz(0,'bajo',yM+GAP);
   { const g=sv('g',{class:'pcg-slot pcg-halo'},slots); fila[1]=g; sv('ellipse',{cx:cxM,cy:yM,rx:13,ry:9},g); }
+  // (30-sep-2026, Iago) flechas desde la nota dada: hacia abajo (para pensar el intervalo hasta el bajo) y hacia arriba
+  const xF=cxM+RW/2+11;
+  const flechaV=(y1,y2)=>{ const s=y2>y1?1:-1, g=sv('g',{class:'pcg-oc pcg-flechav '+(s>0?'abajo':'arriba')},svg2);
+    sv('path',{d:'M'+xF+' '+y1+' L'+xF+' '+y2+' M'+(xF-5.5)+' '+(y2-6.5*s)+' L'+xF+' '+y2+' L'+(xF+5.5)+' '+(y2-6.5*s)},g); return g; };
+  const fAbajo=flechaV(yM+3,yM+GAP+RH-1), fArriba=flechaV(yM-3,yM-GAP-RH+1);
   return {
     p1,p2, ops1:$('.arm-ops',p1), ops2:$('.arm-ops',p2), acorde1:A1.g, acorde2:Afull.g, central:Asol.g, parentesis:par, ord,
     // (30-sep-2026) ilumina en morado el acorde 1 entero ('todo'), una de sus notas (0 = la más grave) o ninguna (null)
@@ -931,13 +944,25 @@ function dibujaArmonico(host,a,b){
     // (30-sep-2026, Iago) «aprovecharía la parte en la que está el ejercicio no activo para oscurecerla y poner ahí el texto,
     // al lado de lo que ocurre. Siempre igual»: los textos del armónico van en el recuadro del acorde que no está activo
     lado(n){ const cont=$('.pcg-arm',host); let l=$('.arm-lado',cont);
-      if(!l){ l=el('div','arm-lado','<div class="big"></div><div class="sub"></div>'); cont.appendChild(l); }
-      const pon=()=>{ l.classList.toggle('l1',n===1); l.classList.toggle('l2',n===2); void l.offsetWidth; l.classList.toggle('on',!!n); };
+      if(!l){ l=el('div','arm-lado','<div class="pre"></div><div class="big"></div><div class="sub"></div>'); cont.appendChild(l); }
+      const pon=()=>{ l.classList.toggle('l1',n===1); l.classList.toggle('l2',n===2); void l.offsetWidth;
+        l.classList.toggle('on',!!n&&!!(l.querySelector('.big').innerHTML||l.querySelector('.sub').innerHTML||l.querySelector('.pre').innerHTML)); };
       if(l.classList.contains('on')&&!l.classList.contains('l'+n)){ l.classList.remove('on'); setTimeout(pon,300); } else pon(); },
-    texto(big,sub){ const l=$('.arm-lado',host); if(!l) return; $('.big',l).innerHTML=big||''; $('.sub',l).innerHTML=sub||'';
-      l.classList.toggle('on',!!(big||sub));   // sin texto (p. ej., bajo «Solución en»), el recuadro vuelve a verse normal
+    // o.pre: una línea pequeña encima (p. ej., «Tipo de acorde») · o.titulo: el texto grande, en tamaño de título
+    texto(big,sub,o){ o=o||{}; const l=$('.arm-lado',host); if(!l) return;
+      $('.pre',l).innerHTML=o.pre||''; $('.big',l).innerHTML=big||''; $('.sub',l).innerHTML=sub||''; $('.big',l).classList.remove('late','entra');
+      l.classList.toggle('titulo',!!o.titulo);
+      l.classList.toggle('on',!!(big||sub||o.pre));   // sin texto (p. ej., bajo «Solución en»), el recuadro vuelve a verse normal
       l.classList.remove('cambia'); void l.offsetWidth; l.classList.add('cambia'); },
-    ok1(){ const s=p1.querySelector('[data-q="'+a.quality+'"]'); s.classList.add('ok'); A1.g.classList.add('pcg-si'); q1.classList.remove('pcg-si'); },
+    // cambia solo el texto grande (en tamaño de título), sin volver a animar lo demás
+    grande(html){ const l=$('.arm-lado',host); if(!l) return; const bg=$('.big',l); bg.innerHTML=html||''; l.classList.add('titulo','on');
+      bg.classList.remove('entra'); void bg.offsetWidth; bg.classList.add('entra'); },
+    // (30-sep-2026, Iago) títulos que se encienden al sonar: «Acorde» (de blanco a morado) y «Ar-pe-gio» (una sílaba por nota;
+    // si el acorde tiene cuatro notas, con la cuarta late la palabra entera)
+    enciende(i){ const l=$('.arm-lado',host); if(!l) return; const ps=l.querySelectorAll('.big .pal,.big .sil');
+      if(i<ps.length) ps[i].classList.add('suena'); else { const bg=$('.big',l); bg.classList.remove('late'); void bg.offsetWidth; bg.classList.add('late'); } },
+    flecha(dir){ fAbajo.classList.toggle('pcg-si',dir==='abajo'); fArriba.classList.toggle('pcg-si',dir==='arriba'); },
+    ok1(){ const s=p1.querySelector('[data-q="'+a.quality+'"]'); s.classList.add('ok'); $('.arm-ops',p1).classList.add('resuelto'); A1.g.classList.add('pcg-si'); q1.classList.remove('pcg-si'); },   // (30-sep-2026) solo la buena, destacada
     verCentral(){ Asol.g.classList.add('pcg-si'); },
     verOriginal(){ Afull.g.classList.add('pcg-si'); Asol.g.classList.remove('pcg-si'); },
     verParentesis(){ par.classList.add('pcg-si'); },
@@ -950,9 +975,9 @@ function dibujaArmonico(host,a,b){
       const cl=h.cloneNode(true); cl.removeAttribute('id'); cl.classList.add('pcg-luz','pcg-viaja'); svg2.appendChild(cl);
       cl.style.transition='transform '+seg+'s cubic-bezier(.45,0,.25,1)';
       requestAnimationFrame(()=>requestAnimationFrame(()=>{ cl.style.transform='translate('+(Afull.cx-Aord.cx)+'px,'+(yb-yo)+'px)'; })); },
-    ok2(){ p2.querySelector('[data-i="'+b.inv+'"]').classList.add('ok'); },
+    ok2(){ p2.querySelector('[data-i="'+b.inv+'"]').classList.add('ok'); $('.arm-ops',p2).classList.add('resuelto'); },
     slots(on){ slots.classList.toggle('pcg-si',!!on); },
-    luz(idx){ [0,1,2].forEach(k=>fila[k].classList.toggle('luz',idx.indexOf(k)>=0)); },
+    luz(idx){ [0,1,2].forEach(k=>fila[k].classList.toggle('luz',idx.indexOf(k)>=0)); slots.classList.toggle('foco',idx.length>0); },   // (30-sep-2026) lo que no suena, casi transparente
     paso(t,nn){ if(!t){ pasoG.classList.remove('pcg-si'); return; } pasoT.textContent=t; pasoN.textContent=nn||''; pasoG.classList.add('pcg-si'); },
     parpadea(n,on){ (n===1?p1:p2).querySelector('.arm-ops').classList.toggle('parpadea',!!on); },
   };
@@ -966,45 +991,63 @@ async function ejArmonico(){
   ESC.sc.classList.add('arriba');   // (30-sep-2026, Iago) sin títulos arriba: la tarjeta sube
   A.activa(1); A.lado(2); ESC.lado=(bg,sb)=>A.texto(bg,sb);   // (30-sep-2026, Iago) los textos, en el recuadro del acorde 2
   sonidoUI('inicio'); cartel('Acorde 1','Indica qué tipo de acorde vas a escuchar');   // (30-sep-2026, Iago) guía al principio
-  await espera(2.0);
-  sonidoUI('atencion'); cartel('Acorde 1','Escucha: primero el acorde y después el arpegio'); await espera(1.2);   // (30-sep-2026) sin «plaqué»
-  let t=ahora()+0.1; bloque(t,m1,2.4); await hasta(t+S(3.1));
-  t=ahora()+0.05; await hasta(arpegio(t,m1,0.7,1.3)+S(0.5));
+  await espera(2.4);
+  // (30-sep-2026, Iago) en vez de otro texto casi igual, solo un título: «Acorde», que pasa de blanco a morado al sonar…
+  A.texto('<span class="pal">Acorde</span>','',{titulo:true}); await espera(0.8);
+  let t=ahora()+0.1; enTiempo(t,()=>A.enciende(0)); bloque(t,m1,2.4); await hasta(t+S(3.1));
+  // …y «Ar-pe-gio», que se ilumina sílaba a sílaba, una con cada nota
+  A.texto('<span class="sil">Ar</span><i>-</i><span class="sil">pe</span><i>-</i><span class="sil">gio</span>','',{titulo:true}); await espera(0.7);
+  t=ahora()+0.05; await hasta(arpegio(t,m1,0.7,1.3,0.7,i=>A.enciende(i))+S(0.5));
   A.parpadea(1,true);   // (30-sep-2026, Iago) mientras piensan, las opciones parpadean
-  sonidoUI('escribe'); await escribir(10,'¿Qué tipo de acorde es?','Rodéalo en tu libreta: PM · Pm · Aum · Dis · 7D');
+  sonidoUI('escribe'); await escribir(10,'¿Qué tipo de acorde es?','Rodéalo en tu libreta');   // (30-sep-2026) las opciones ya están debajo
   A.parpadea(1,false);
-  // (30-sep-2026) sin flecha de «Solución» (señalaba justo la 7D): se ilumina la opción buena
-  // (30-sep-2026, Iago) suena el acorde iluminado en morado y después se arpegia, iluminando cada nota
+  // (30-sep-2026, Iago) solución: «Tipo de acorde» en pequeño y el nombre en grande; abajo, destacada solo la opción buena.
+  // Suena el acorde iluminado en morado y después se arpegia, iluminando cada nota
   A.ok1(); A.luz1('todo'); bloque(ahora()+0.05,m1,2.0);
-  cartel(TIPO_NOMBRE[a.quality]||a.label,'Solución');
+  A.texto(TIPO_NOMBRE[a.quality]||a.label,'',{pre:'Tipo de acorde',titulo:true});
   await espera(2.0); A.luz1(null);
   { const arr=m1.slice().sort((p,q)=>p-q); await hasta(arpegio(ahora()+0.1,arr,0.7,1.2,0.7,i=>A.luz1(i))+S(0.3)); }
   A.luz1(null); await espera(0.3);
   let g;
   // ---------- ACORDE 2 · tiple, bajo e inversión
-  A.activa(2); A.lado(1);   // …y ahora, en el del acorde 1
-  sonidoUI('inicio'); cartel('Acorde 2','Escribe la nota aguda y la grave; después, la inversión');   // (30-sep-2026, Iago) guía al principio
-  await espera(2.0);
-  // (30-sep-2026, Iago) primero solo «Escríbela», a la derecha de la nota con la flecha hacia la izquierda…
-  A.verCentral(); g=await aviso(A.central,'Escríbela','der'); nota(ahora()+0.05,m2[1],0.95,S(2.2));
-  cartel('Nota central: '+b.dada,'Escríbela en el pentagrama');
-  await espera(5); g.quitar();
-  // …y después, lo que tienen que adivinar: la aguda y la grave
-  A.slots(true); A.luz([]); await espera(0.6);
-  const PASOS=[
-    {t:'Acorde completo',f:tt=>{ A.luz([0,1,2]); return bloque(tt,m2,1.7); }},
-    {t:'Arpegiado',f:tt=>arpegio(tt,m2,0.62,1.2,0.7,i=>A.luz([i]))},
-    {t:'Nota central y nota grave',f:tt=>{ A.luz([0,1]); return bloque(tt,[m2[0],m2[1]],1.7); }},
-    {t:'Las dos, arpegiadas',f:tt=>arpegio(tt,[m2[0],m2[1]],0.7,1.2,0.7,i=>A.luz([i]))},
-    {t:'Nota central y nota aguda',f:tt=>{ A.luz([1,2]); return bloque(tt,[m2[1],m2[2]],1.7); }},
-    {t:'Las dos, arpegiadas',f:tt=>arpegio(tt,[m2[1],m2[2]],0.7,1.2,0.7,i=>A.luz([i+1]))},
-    {t:'Acorde completo',f:tt=>{ A.luz([0,1,2]); return bloque(tt,m2,1.7); }},
-    {t:'Arpegiado',f:tt=>arpegio(tt,m2,0.62,1.2,0.7,i=>A.luz([i]))},
-  ];
-  cartel('Acorde 2','Escucha y escribe la nota aguda y la grave');
-  for(let i=0;i<PASOS.length;i++){ A.paso(PASOS[i].t,(i+1)+' de '+PASOS.length); const tf=PASOS[i].f(ahora()+0.12); await hasta(tf+S(0.5)); A.luz([]); }
-  A.paso(null);
-  sonidoUI('escribe'); await escribir(10,'Escribe la nota aguda y la grave');
+  // (30-sep-2026, Iago) «un poquito más despacio»: primero un cartelito de «Siguiente parte» y después «Acorde 2»…
+  A.texto('',''); await espera(0.35);
+  A.activa(2); A.lado(1);   // …los textos, ahora en el recuadro del acorde 1
+  sonidoUI('inicio'); A.texto('','',{pre:'Siguiente parte'}); await espera(1.0);
+  A.grande('Acorde 2'); await espera(1.8);
+  // …después, solo «Escribe la nota dada» y el cartelito con la flecha
+  A.verCentral(); cartel('Escribe la nota dada','');
+  await espera(0.8);
+  g=await aviso(A.central,'Escríbela','der'); nota(ahora()+0.05,m2[1],0.95,S(2.2));
+  await espera(4.2); g.quitar();
+  // (30-sep-2026, Iago) «para los niños es difícil entender que primero tienen que adivinar la nota de abajo y luego la de
+  // arriba»: paso a paso y con calma. El acorde; la de abajo (flecha hacia abajo desde la nota dada, la pareja a la vez y
+  // separada y una pausa para anotarla); lo mismo con la de arriba; y el acorde entero para comprobar. Lo que no suena,
+  // casi transparente. Abajo, «Ve escribiendo» (en vez de «1 de 8»)
+  A.slots(true); A.luz([]); pieTexto('Ve escribiendo');
+  // 1 · el acorde
+  sonidoUI('atencion'); cartel('Escucha el acorde','Tu nota está en el medio'); await espera(0.9);
+  t=ahora()+0.1; A.luz([0,1,2]); await hasta(bloque(t,m2,1.8)+S(0.6));
+  A.luz([]); t=ahora()+0.1; await hasta(arpegio(t,m2,0.8,1.2,0.7,i=>A.luz([i]))+S(0.5));
+  // 2 · la nota de abajo
+  A.luz([0]); A.flecha('abajo'); sonidoUI('atencion'); cartel('La nota de abajo','Escúchala y anótala'); await espera(1.2);
+  t=ahora()+0.1; A.luz([0,1]); await hasta(bloque(t,[m2[0],m2[1]],1.8)+S(0.6));
+  t=ahora()+0.1; await hasta(arpegio(t,[m2[1],m2[0]],0.9,1.3,0.7,i=>A.luz([1-i]))+S(0.4));   // desde la nota dada, hacia abajo
+  A.luz([0]); sonidoUI('escribe'); cartel('La nota de abajo','Anótala'); await espera(2.8);
+  t=ahora()+0.1; await hasta(arpegio(t,[m2[1],m2[0]],0.9,1.3,0.7,i=>A.luz([1-i]))+S(0.4));
+  A.flecha(null);
+  // 3 · la nota de arriba
+  A.luz([2]); A.flecha('arriba'); sonidoUI('atencion'); cartel('Ahora, la nota de arriba','Escúchala y escríbela'); await espera(1.2);
+  t=ahora()+0.1; A.luz([1,2]); await hasta(bloque(t,[m2[1],m2[2]],1.8)+S(0.6));
+  t=ahora()+0.1; await hasta(arpegio(t,[m2[1],m2[2]],0.9,1.3,0.7,i=>A.luz([i+1]))+S(0.4));   // desde la nota dada, hacia arriba
+  A.luz([2]); sonidoUI('escribe'); cartel('La nota de arriba','Escríbela'); await espera(2.8);
+  t=ahora()+0.1; await hasta(arpegio(t,[m2[1],m2[2]],0.9,1.3,0.7,i=>A.luz([i+1]))+S(0.4));
+  A.flecha(null);
+  // 4 · comprobar con el acorde entero
+  sonidoUI('atencion'); cartel('Comprueba','Escucha el acorde entero'); await espera(1.0);
+  t=ahora()+0.1; A.luz([0,1,2]); await hasta(bloque(t,m2,2.2)+S(0.7));
+  A.luz([]); pieTexto('');
+  sonidoUI('escribe'); await escribir(5,'Termina de escribir','La nota de arriba y la de abajo');
   A.slots(false);
   A.verParentesis();
   g=await aviso(A.parentesis,'Ordena tu acorde aquí','arriba');
@@ -1185,7 +1228,7 @@ function pintaPiano(){ const p=$('#pcgPiano'); if(!p) return;
    Desde «Empezar» hasta los créditos, con el minuto de preparación. Con la semilla del iPad se generan los mismos
    ejercicios que al empezar; cambia de un carrusel a otro lo que dura el ritmo, el dictado del TonCom, el acorde 1 y la
    cadencia; el resto es fijo (DUR_FIJA, medido con el reloj del audio en carruseles de prueba). */
-const DUR_FIJA=543.9, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep)
+const DUR_FIJA=537.8, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep)
 function duracionCarrusel(sem){
   if(sem==null) return null; if(sem in DUR_CACHE) return DUR_CACHE[sem];
   let tot=null;
@@ -1251,6 +1294,82 @@ function vigila(){
   }
   requestAnimationFrame(f);
 }
+/* ▼ música de preparación ======================================================================================
+   (30-sep-2026, Iago) «musiquita rítmica, estimulante, de fondo, que encaje con la estética y vaya a un tiempo que encaje
+   con la cuenta atrás». 120 pulsos por minuto (dos por segundo: cada número del reloj cae en un pulso), en La menor
+   (Lam · Fa · Do · Sol), sintetizada aquí mismo, sin ficheros. Va creciendo: acordes y arpegio → bombo, bajo y charles →
+   palmas y arpegio en semicorcheas → subida en los últimos 8 s → golpe en el 0:00, que se apaga cuando entra el rítmico.
+   «Siguiente» la corta (cortar → musCorta). Para quitarla: borrar las tres llamadas mus… de preparacion(). */
+let MUS_IN=null, MUS_ECO=null, MUS_OUT=null, MUS_R=null;
+const MUS_VOL=0.6;
+function musBuses(){ const c=ac(); if(MUS_OUT) return;
+  MUS_OUT=c.createGain(); MUS_OUT.gain.value=0.0001; MUS_OUT.connect(c.destination);
+  MUS_IN=c.createGain(); MUS_IN.connect(MUS_OUT);
+  MUS_ECO=c.createGain(); MUS_ECO.connect(MUS_OUT);
+  const dl=c.createDelay(1.0), fb=c.createGain(), lp=c.createBiquadFilter(), wet=c.createGain();
+  dl.delayTime.value=0.375; fb.gain.value=0.3; lp.type='lowpass'; lp.frequency.value=2800; wet.gain.value=0.26;   // eco a corchea con puntillo
+  MUS_ECO.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet); wet.connect(MUS_OUT);
+  const n=Math.floor(c.sampleRate*2); MUS_R=c.createBuffer(1,n,c.sampleRate); const d=MUS_R.getChannelData(0); for(let i=0;i<n;i++) d[i]=Math.random()*2-1; }
+const mHz=m=>440*Math.pow(2,(m-69)/12);
+function mTono(tipo,f,t,dur,g,dest,ataque){ const c=ac(), o=c.createOscillator(), a=c.createGain(); o.type=tipo; o.frequency.value=f;
+  a.gain.setValueAtTime(0.0001,t); a.gain.exponentialRampToValueAtTime(g,t+(ataque||0.005)); a.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(a); a.connect(dest); o.start(t); o.stop(t+dur+0.03); vivo(o,t+dur+0.03); }
+function mRuido(t,dur,g,tipo,f,q){ const c=ac(), s=c.createBufferSource(), fl=c.createBiquadFilter(), a=c.createGain(); s.buffer=MUS_R;
+  fl.type=tipo; fl.frequency.value=f; fl.Q.value=q||0.7; a.gain.setValueAtTime(g,t); a.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  s.connect(fl); fl.connect(a); a.connect(MUS_IN); s.start(t,Math.random()*0.3); s.stop(t+dur+0.02); vivo(s,t+dur+0.02); }
+function mBombo(t,g){ mTono('triangle',1100,t,0.018,g*0.18,MUS_IN,0.001);   // «clic» del ataque: se oye también en altavoces pequeños
+  const c=ac(), o=c.createOscillator(), a=c.createGain(); o.type='sine';
+  o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(46,t+0.1);
+  a.gain.setValueAtTime(0.0001,t); a.gain.exponentialRampToValueAtTime(g,t+0.004); a.gain.exponentialRampToValueAtTime(0.0001,t+0.36);
+  o.connect(a); a.connect(MUS_IN); o.start(t); o.stop(t+0.38); vivo(o,t+0.38); }
+function mBajo(t,m,dur,g){ const c=ac(), o=c.createOscillator(), fl=c.createBiquadFilter(), a=c.createGain(); o.type='sawtooth'; o.frequency.value=mHz(m);
+  fl.type='lowpass'; fl.Q.value=5; fl.frequency.setValueAtTime(1700,t); fl.frequency.exponentialRampToValueAtTime(300,t+dur);
+  a.gain.setValueAtTime(0.0001,t); a.gain.exponentialRampToValueAtTime(g,t+0.008); a.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(fl); fl.connect(a); a.connect(MUS_IN); o.start(t); o.stop(t+dur+0.03); vivo(o,t+dur+0.03); }
+function mAcordes(t,midis,dur,g,corte,pulso){ const c=ac(), fl=c.createBiquadFilter(), a=c.createGain(); fl.type='lowpass'; fl.frequency.value=corte; fl.Q.value=0.7;
+  if(pulso){ for(let k=0;k*pulso<dur-0.01;k++){ const tb=t+k*pulso; a.gain.setValueAtTime(g*0.25,tb); a.gain.linearRampToValueAtTime(g,tb+pulso*0.75); } }   // «bombeo» con el bombo
+  else { a.gain.setValueAtTime(0.0001,t); a.gain.linearRampToValueAtTime(g,t+0.2); }
+  a.gain.setValueAtTime(g,t+dur-0.06); a.gain.linearRampToValueAtTime(0.0001,t+dur+0.05);
+  fl.connect(a); a.connect(MUS_ECO);
+  midis.forEach(m=>[-9,9].forEach(det=>{ const o=c.createOscillator(); o.type='sawtooth'; o.frequency.value=mHz(m); o.detune.value=det; o.connect(fl); o.start(t); o.stop(t+dur+0.08); vivo(o,t+dur+0.08); })); }
+function mArpegio(t,m,g){ mTono('triangle',mHz(m),t,0.22,g,MUS_ECO,0.004); mTono('sine',mHz(m)*2,t,0.1,g*0.3,MUS_ECO,0.003); }
+function mPalmas(t,g){ [0,0.011,0.022].forEach(d=>mRuido(t+d,0.04,g*0.8,'bandpass',1500,1)); mRuido(t+0.03,0.15,g,'bandpass',1250,0.9); }
+function mSubida(t,dur,g){ const c=ac(), s=c.createBufferSource(), fl=c.createBiquadFilter(), a=c.createGain(); s.buffer=MUS_R; s.loop=true;
+  fl.type='bandpass'; fl.Q.value=1.4; fl.frequency.setValueAtTime(300,t); fl.frequency.exponentialRampToValueAtTime(6500,t+dur);
+  a.gain.setValueAtTime(0.0001,t); a.gain.exponentialRampToValueAtTime(g,t+dur); a.gain.exponentialRampToValueAtTime(0.0001,t+dur+0.1);
+  s.connect(fl); fl.connect(a); a.connect(MUS_IN); s.start(t); s.stop(t+dur+0.12); vivo(s,t+dur+0.12); }
+const MUS_PROG=[
+  {b:45,ac:[57,60,64],ar:[69,72,76,81]},   // Lam
+  {b:41,ac:[57,60,65],ar:[69,72,77,81]},   // Fa
+  {b:48,ac:[55,60,64],ar:[67,72,76,79]},   // Do
+  {b:43,ac:[55,59,62],ar:[67,71,74,79]}];  // Sol
+const MUS_DIB=[0,1,2,3,2,1,2,3];   // dibujo del arpegio (en semicorcheas)
+function musInicio(t0){ try{ musBuses(); const c=ac(), g=MUS_OUT.gain; g.cancelScheduledValues(c.currentTime); g.setValueAtTime(0.0001,c.currentTime);
+  g.exponentialRampToValueAtTime(MUS_VOL,t0+S(1.5)); }catch(e){ console.warn('[guiado] música',e); } }
+function musCorta(){ try{ if(MUS_OUT&&AC){ const g=MUS_OUT.gain, n=AC.currentTime; g.cancelScheduledValues(n); g.setValueAtTime(Math.max(0.0001,g.value),n); g.linearRampToValueAtTime(0.0001,n+0.12); } }catch(e){} }
+/* programa un segundo de música (de s a s+1: dos pulsos) */
+function musPrep(t0,s){ try{
+  if(s>60) return;
+  for(let k=0;k<2;k++){
+    const n=2*s+k, tb=t0+S(n*0.5), p=S(0.5);
+    if(n>120) continue;
+    if(n===120){   // 0:00: golpe final, y la música se apaga mientras entra el rítmico
+      mBombo(tb,0.6); mRuido(tb,1.6,0.09,'highpass',5200,0.5); mAcordes(tb,[57,64,69,71,76],S(1.4),0.026,2600,0); mTono('sine',mHz(45),tb,1.2,0.16,MUS_IN,0.006);
+      const g=MUS_OUT.gain; g.setValueAtTime(MUS_VOL*1.3,tb+S(0.4)); g.exponentialRampToValueAtTime(0.0001,tb+S(1.9));
+      continue; }
+    const B=Math.floor(n/4), bt=n%4, ch=MUS_PROG[B%4], lleno=B>=12, groove=B>=4, subida=n>=104;
+    if(bt===0) mAcordes(tb,ch.ac,S(2),groove?0.024:0.019,800+B*50,groove?p:0);   // acordes, uno por compás (el filtro se va abriendo)
+    if(lleno){ for(let j=0;j<4;j++) mArpegio(tb+j*p/4,ch.ar[MUS_DIB[(bt*4+j)%8]],j%2?0.075:0.1); }   // arpegio en semicorcheas…
+    else { for(let j=0;j<2;j++) mArpegio(tb+j*p/2,ch.ar[MUS_DIB[(bt*4+j*2)%8]],0.11); }                // …o en corcheas
+    if(B>=2) mRuido(tb+p/2,lleno?0.11:0.05,groove?0.09:0.05,'highpass',7000,0.7);            // charles a contratiempo
+    if(lleno){ mRuido(tb+p/4,0.03,0.035,'highpass',8000,0.7); mRuido(tb+3*p/4,0.03,0.035,'highpass',8000,0.7); }
+    if(groove){ mBombo(tb,0.32); mBajo(tb,ch.b,p*0.45,0.13); mBajo(tb+p/2,lleno?ch.b+12:ch.b,p*0.45,0.12); }
+    if(lleno&&(bt===1||bt===3)) mPalmas(tb,0.16);
+    if(n===104){ mSubida(tb,S(8),0.2); const g=MUS_OUT.gain; g.setValueAtTime(MUS_VOL,tb); g.linearRampToValueAtTime(MUS_VOL*1.3,tb+S(8)); }   // los últimos 8 s: subida (y un poco más de volumen)…
+    if(subida){ const div=n>=112?4:2, g0=n>=112?0.07:0.05; for(let j=0;j<div;j++) mRuido(tb+j*p/div,0.08,g0+(n-104)*0.005,'bandpass',2300,0.7); }   // …y redoble
+  }
+}catch(e){ console.warn('[guiado] música',e); } }
+/* ▲ música de preparación ====================================================================================== */
 /* (30-sep-2026, Iago) al pulsar «Empezar carrusel»: un minuto para coger el material (→ o «Siguiente» lo salta) */
 async function preparacion(){
   EJ_ACT=-1; ESC=null; fondo('multi'); STAGE.innerHTML='';
@@ -1258,8 +1377,9 @@ async function preparacion(){
   p.innerHTML='<div class="t">El carrusel empezará en…</div><div class="reloj">1:00</div>'+
     '<div class="sub">Coge tu libro, lápiz y goma antes de que se acabe el tiempo</div>';
   STAGE.appendChild(p);
-  const r=$('.reloj',p), t0=ahora(), N=60;
-  for(let k=1;k<=N;k++){ await hasta(t0+S(k)); const q=N-k; r.textContent=Math.floor(q/60)+':'+String(q%60).padStart(2,'0'); }
+  const r=$('.reloj',p), t0=ahora()+0.15, N=60;
+  musInicio(t0); musPrep(t0,0); musPrep(t0,1);   // (30-sep-2026, Iago) música de fondo, a tempo con el reloj
+  for(let k=1;k<=N;k++){ await hasta(t0+S(k)); musPrep(t0,k+1); const q=N-k; r.textContent=Math.floor(q/60)+':'+String(q%60).padStart(2,'0'); }
   await espera(0.5);
 }
 async function empezar(){

@@ -380,3 +380,30 @@ html.pc-pantalla #pcgBonusIpad{display:none}
 #pcg .pcg-halo ellipse{fill:#7c3aed;opacity:0;transition:opacity .25s}
 #pcg .pcg-halo.luz ellipse{opacity:.28}
 #pcg .pcg-alt{fill:#1e1b2e}   /* (30-sep-2026) la alteración de la nota dada, oscura */
+/* (30-sep-2026, Iago) armónico: títulos grandes en el recuadro de al lado («Acorde», «Ar-pe-gio», el tipo de acorde…)
+   y, cuando hace falta, una línea pequeña encima («Tipo de acorde», «Siguiente parte») */
+.arm-lado .pre{font-size:25px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#cdb8ff}
+.arm-lado .pre:empty{display:none}
+.arm-lado.titulo .big{font-size:72px;font-weight:900;line-height:1.08;letter-spacing:-.01em}
+.arm-lado .big .pal{color:#fff;transition:color .35s ease}
+.arm-lado .big .pal.suena{color:#a978ff}
+.arm-lado .big .sil{display:inline-block;color:rgba(255,255,255,.3);transition:color .2s ease,transform .2s ease}
+.arm-lado .big .sil.suena{color:#a978ff;transform:scale(1.08)}
+.arm-lado .big i{font-style:normal;color:rgba(255,255,255,.3);margin:0 .04em}
+.arm-lado .big.late{animation:pcgLate .5s ease}
+.arm-lado .big.entra{animation:pcgCartel .45s ease}
+.arm-lado.cambia .pre{animation:pcgCartel .45s ease}
+@keyframes pcgLate{40%{transform:scale(1.07)}}
+/* (30-sep-2026, Iago) acorde 2: lo que no suena, casi transparente; sin contorno en las letras */
+#pcg .pcg-voz rect,#pcg .pcg-halo ellipse,#pcg .pcg-voz text{stroke:none}
+#pcg .pcg-voz text{transition:opacity .25s}
+#pcg .pcg-slots.foco .pcg-voz:not(.luz) rect{opacity:.07}
+#pcg .pcg-slots.foco .pcg-voz:not(.luz) text{opacity:0}
+/* flechas desde la nota dada, hacia abajo (bajo) y hacia arriba (tiple) */
+#pcg .pcg-flechav path{fill:none;stroke:#7c3aed;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+#pcg .pcg-flechav.pcg-si.abajo{animation:pcgFlechaAbajo 1s ease-in-out infinite}
+#pcg .pcg-flechav.pcg-si.arriba{animation:pcgFlechaArriba 1s ease-in-out infinite}
+@keyframes pcgFlechaAbajo{50%{transform:translateY(2.5px)}}
+@keyframes pcgFlechaArriba{50%{transform:translateY(-2.5px)}}
+/* en la solución, solo la opción buena */
+.arm-ops.resuelto>span:not(.ok){opacity:.12}
