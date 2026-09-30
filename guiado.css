@@ -373,3 +373,10 @@ html.pc-pantalla #pcgBonusIpad{display:none}
 .pcg-ej.arriba .pcg-hoja,.pcg-ej.arriba .pcg-velo{top:150px;height:500px}
 /* (30-sep-2026, Iago) créditos: confeti */
 .pcg-confeti{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:60}
+/* (30-sep-2026, Iago) acorde 2: «tiple» y «bajo» en rectángulos morados traslúcidos, encima y debajo de la nota escrita */
+#pcg .pcg-voz rect{fill:#7c3aed;opacity:.66;transition:opacity .25s}
+#pcg .pcg-voz text{font:800 11.5px "Helvetica Neue",Arial,sans-serif;fill:#fff;letter-spacing:.03em}
+#pcg .pcg-voz.luz rect{opacity:1}
+#pcg .pcg-halo ellipse{fill:#7c3aed;opacity:0;transition:opacity .25s}
+#pcg .pcg-halo.luz ellipse{opacity:.28}
+#pcg .pcg-alt{fill:#1e1b2e}   /* (30-sep-2026) la alteración de la nota dada, oscura */

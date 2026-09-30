@@ -905,17 +905,23 @@ function dibujaArmonico(host,a,b){
   sv('circle',{class:'pcg-anillo',cx:Aord.cx,cy:yo,r:9},explA);
   sv('circle',{class:'pcg-anillo',cx:Afull.cx,cy:yb,r:9},explB);
   const tb=sv('text',{class:'pcg-rol clave',x:Afull.cx,y:Math.min(yb+22,146),'text-anchor':'middle'},explB); tb.textContent='bajo';
-  // las tres voces (para guiar la escucha, sin dar la respuesta). (30-sep-2026, Iago) PEGADAS al acorde: cada etiqueta
-  // a la izquierda de su nota, con «?» arriba (aguda) y abajo (grave) de la nota central
-  const yM=Asol.ys[0], xq=Asol.cx, yA=Math.max(40,yM-17), yG=Math.min(142,yM+18), xe=Asol.x1-(mid.acc!==0?21:7);   // (30-sep-2026) «?» más cerca de la central
-  const slots=sv('g',{class:'pcg-oc'},svg2), fila={};
-  const ponFila=(k,etq,xE,yE,yQ)=>{ const g=sv('g',{class:'pcg-slot'},slots); fila[k]=g;
-    const t=sv('text',{class:'pcg-slot-t',x:xE,y:yE,'text-anchor':'end'},g); t.textContent=etq;
-    if(yQ!=null){ const q=sv('text',{class:'pcg-slot-q',x:xq,y:yQ,'text-anchor':'middle'},g); q.textContent='?'; } };
-  // (30-sep-2026, Iago) las tres palabras alineadas (mismo borde derecho)
-  ponFila(2,'aguda',xe-5,yA+4,yA+9);
-  ponFila(1,'central',xe-5,yM+3.8,null);
-  ponFila(0,'grave',xe-5,yG+4,yG+9);
+  // (30-sep-2026, Iago) «en lugar de poner nota, bajo e interrogación»: dos rectángulos morados traslúcidos, justo encima y
+  // justo debajo de la nota escrita, con «tiple» y «bajo» en blanco y altos para abarcar varias notas (la del tiple y la
+  // del bajo están a una 3.ª o una 4.ª de la central). Al escuchar se encienden (luz); la central, con un halo
+  // (30-sep-2026) la alteración de la nota dada, oscura (VexFlow la pinta del color de la nota): así se lee también sobre los
+  // rectángulos de tiple y bajo, aunque estén encendidos
+  const altOscura=A=>{ try{ A.g.querySelectorAll('path').forEach(pth=>{ const bb=pth.getBBox(); if(bb.width>0&&bb.x+bb.width<=A.x1+0.5) pth.classList.add('pcg-alt'); }); }catch(e){} };
+  altOscura(Asol); altOscura(Afull);
+  const yM=Asol.ys[0], cxM=Asol.cx, RW=50, RH=28, GAP=6.5;
+  // por DETRÁS de la nota central y de su alteración (que se siguen leyendo), por encima de las líneas del pentagrama
+  const slots=sv('g',{class:'pcg-oc'}), fila={};
+  if(Asol.g.parentNode===svg2) svg2.insertBefore(slots,Asol.g); else svg2.appendChild(slots);
+  const cajaVoz=(k,etq,yTop)=>{ const g=sv('g',{class:'pcg-slot pcg-voz'},slots); fila[k]=g;
+    sv('rect',{x:cxM-RW/2,y:yTop,width:RW,height:RH,rx:5},g);
+    const t=sv('text',{x:cxM,y:yTop+RH/2+4,'text-anchor':'middle'},g); t.textContent=etq; };
+  cajaVoz(2,'tiple',yM-GAP-RH);
+  cajaVoz(0,'bajo',yM+GAP);
+  { const g=sv('g',{class:'pcg-slot pcg-halo'},slots); fila[1]=g; sv('ellipse',{cx:cxM,cy:yM,rx:13,ry:9},g); }
   return {
     p1,p2, ops1:$('.arm-ops',p1), ops2:$('.arm-ops',p2), acorde1:A1.g, acorde2:Afull.g, central:Asol.g, parentesis:par, ord,
     // (30-sep-2026) ilumina en morado el acorde 1 entero ('todo'), una de sus notas (0 = la más grave) o ninguna (null)
