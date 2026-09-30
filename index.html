@@ -1092,11 +1092,25 @@ function generar(tipo){
   if(tipo==='armonico') renderArmonico(seed);
 }
 
+// (30-sep-2026, Iago) Semilla nueva que NO repite el tipo de cadencia del bonus del carrusel anterior (el guardado en
+// este aparato). La cadencia la decide guiado.js (window.PCCadencia); si no está, una semilla cualquiera, como antes.
+function semillaNueva(){
+  let seed=Math.floor(Math.random()*1000000);
+  try{
+    const prev=localStorage.getItem(PC_SEED_KEY), cad=window.PCCadencia;
+    if(cad && prev!==null && prev!==''){
+      const ant=cad(Number(prev)), tipoAnt=ant&&ant.id;
+      for(let i=0;tipoAnt&&i<50;i++){ const c=cad(seed); if(!c||c.id!==tipoAnt) break; seed=Math.floor(Math.random()*1000000); }
+    }
+  }catch(e){}
+  return seed;
+}
+
 // "Aleatorizar todo": pide confirmación antes de sobrescribir el ejercicio actual.
 function generarTodo(){
   const hayActual = (()=>{ try{ return !!localStorage.getItem(PC_SEED_KEY); }catch(e){ return false; } })();
   if(hayActual && !confirm('¿Generar un ejercicio nuevo? Se perderá el actual que tienes en pantalla.')) return;
-  const seed=Math.floor(Math.random()*1000000);
+  const seed=semillaNueva();
   renderConSemilla(seed);
   guardarSesion(seed);
 }
@@ -1114,11 +1128,11 @@ window.addEventListener('load',()=>{
       return;
     }
   }
-  const seed=Math.floor(Math.random()*1000000);
+  const seed=semillaNueva();
   renderConSemilla(seed);
   guardarSesion(seed);
 });
 </script>
-<script src="guiado.js?v=7"></script>
+<script src="guiado.js?v=8"></script>
 </body>
 </html>

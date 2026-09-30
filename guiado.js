@@ -24,32 +24,57 @@
 'use strict';
 
 /* ---------- BONUS TRACK: la cadencia (común al iPad y a la pantalla; sale siempre la misma para la misma semilla) ----------
-   Bases a 4 voces del motor de cadencias del PreDict PRO (autentica_perfecta, plagal_perfecta, rota, semicadencia). */
+   (30-sep-2026, Iago) «Me ha tocado rota varias veces y siempre igual. ¿Hay variedad?» Antes había UNA progresión por tipo
+   (las bases del PreDict PRO). Ahora, 4 por tipo (2 en mayor y 2 en menor; 16 en total), escritas a 4 voces y comprobadas
+   una a una con un verificador (sin quintas ni octavas paralelas ni directas en los extremos, sin cruces ni solapamientos,
+   sensible que sube a la tónica, séptima que baja, sin 2.ª aumentada, en la rota la tercera del VI doblada), y en las 10
+   tonalidades del Grado Elemental (hasta 2 alteraciones). Cada una lleva sus tonalidades y el transporte (en semitonos
+   desde Do M / La m) con el que queda en buena tesitura en los pentagramas. Los dos últimos acordes, siempre en estado
+   fundamental: «fíjate en el bajo» sigue dando los grados. Todas duran 12 negras.
+   Semilla → tipo (1 de 4) → progresión (1 de 4) → tonalidad. En el iPad, «Generar» no repite el tipo del carrusel anterior. */
 const CAD4=[
-  {id:'autentica',nom:'Auténtica',rn:'V – I',gr:['V','I'],expl:'Del V (dominante) al I (tónica): un final rotundo. Conclusiva.',ev:[
-    {midi:[67,64,60,48],q:2},{midi:[64,60,55,48],q:2},{midi:[65,60,57,41],q:1},{midi:[64,60,57,41],q:1},{midi:[62,60,59,40],q:2},{midi:[62,65,59,43],q:2},{midi:[60,64,55,48],q:4}],modo:'major',ref:0},
-  {id:'plagal',nom:'Plagal',rn:'IV – I',gr:['IV','I'],expl:'Del IV (subdominante) al I (tónica): un final suave, como un «amén». Conclusiva.',ev:[
-    {midi:[69,65,60,41],q:2},{midi:[72,64,57,48],q:2},{midi:[71,65,55,43],q:2},{midi:[69,65,60,41],q:2},{midi:[72,65,57,46],q:2},{midi:[70,65,58,46],q:2},{midi:[77,65,60,41],q:4}],modo:'major',ref:5},
-  {id:'rota',nom:'Rota',rn:'V – VI',gr:['V','VI'],expl:'Parece que va a terminar en el I… y va al VI. ¡Sorpresa!',ev:[
-    {midi:[69,64,60,45],q:2},{midi:[72,64,57,45],q:2},{midi:[71,62,53,50],q:1},{midi:[69,64,53,50],q:1},{midi:[68,64,59,52],q:2},{midi:[69,62,53,50],q:2},{midi:[71,62,56,52],q:2},{midi:[72,60,57,53],q:4}],modo:'minor',ref:9},
-  {id:'semicadencia',nom:'Semicadencia',rn:'… – V',gr:['I','V'],expl:'Termina en el V: se queda en el aire, como una pregunta. Suspensiva.',ev:[
-    {midi:[66,62,57,50],q:2},{midi:[69,62,54,50],q:2},{midi:[66,62,57,54],q:1},{midi:[69,62,57,54],q:2},{midi:[66,62,57,57],q:2},{midi:[64,61,57,57],q:4}],modo:'major',ref:2},
+  {id:'autentica',nom:'Auténtica',rn:'V – I',expl:'Del V (dominante) al I (tónica): un final rotundo. Conclusiva.'},
+  {id:'plagal',nom:'Plagal',rn:'IV – I',expl:'Del IV (subdominante) al I (tónica): un final suave, como un «amén». Conclusiva.'},
+  {id:'rota',nom:'Rota',rn:'V – VI',expl:'Parece que va a terminar en el I… y va al VI. ¡Sorpresa!'},
+  {id:'semicadencia',nom:'Semicadencia',rn:'… – V',expl:'Termina en el V: se queda en el aire, como una pregunta. Suspensiva.'},
 ];
-const CAD_TON={major:[['C',0,0,'C'],['G',7,1,'G'],['F',5,-1,'F'],['D',2,2,'D']],minor:[['A',9,0,'Am'],['E',4,1,'Em'],['D',2,-1,'Dm']]};
-const CAD_NOM={C:'Do',D:'Re',E:'Mi',F:'Fa',G:'Sol',A:'La',B:'Si'};
+/* las progresiones, en Do M (m:'M') o La m (m:'m'): [S, A, T, B] en MIDI; q en negras; t = [tonalidad, transporte] */
+const CAD_VAR={
+  autentica:[
+    /* I VI IV V I        */ {id:'A1',m:'M',gr:['V','I'],q:[2,2,2,2,4],ev:[[76,67,60,48],[76,69,60,45],[77,69,60,53],[74,67,59,55],[72,64,60,48]],t:[['C',0],['G',-5],['F',-7],['D',2],['Bb',-2]]},
+    /* I V6 I IV V7 I     */ {id:'A2',m:'M',gr:['V','I'],q:[2,1,1,2,2,4],ev:[[72,67,64,48],[74,67,62,47],[76,67,60,48],[77,69,60,53],[74,65,59,55],[72,64,60,48]],t:[['C',0],['G',-5],['F',-7],['D',2],['Bb',-2]]},
+    /* I IV I V I         */ {id:'A3',m:'m',gr:['V','I'],q:[2,2,2,2,4],ev:[[76,69,60,45],[74,65,57,50],[72,64,57,45],[71,64,56,52],[69,60,57,45]],t:[['Am',0],['Em',-5],['Bm',2],['Gm',-2]]},
+    /* I VI II6 V7 I      */ {id:'A4',m:'m',gr:['V','I'],q:[2,2,2,2,4],ev:[[69,64,60,45],[72,65,57,41],[74,65,59,50],[71,62,56,52],[69,60,57,45]],t:[['Am',0],['Dm',5],['Bm',2],['Gm',-2]]}],
+  plagal:[
+    /* I V6 I IV I        */ {id:'P1',m:'M',gr:['IV','I'],q:[2,2,2,2,4],ev:[[76,67,55,48],[74,67,55,47],[72,64,55,48],[72,65,57,53],[72,64,55,48]],t:[['C',0],['G',-5],['F',-7],['D',2],['Bb',-2]]},
+    /* I V6 I VI IV I     */ {id:'P2',m:'M',gr:['IV','I'],q:[2,1,1,2,2,4],ev:[[76,67,55,48],[74,67,55,47],[72,64,55,48],[72,64,57,45],[69,65,60,53],[67,64,60,48]],t:[['C',0],['G',-5],['D',2],['Bb',-2]]},
+    /* I V6 I IV I        */ {id:'P3',m:'m',gr:['IV','I'],q:[2,2,2,2,4],ev:[[69,64,60,45],[71,64,59,44],[72,64,57,45],[74,65,57,50],[72,64,57,45]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]},
+    /* I IV V I IV I      */ {id:'P4',m:'m',gr:['IV','I'],q:[2,1,1,2,2,4],ev:[[72,64,57,45],[74,65,57,50],[71,64,56,52],[72,64,57,45],[74,65,57,50],[72,64,57,45]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]}],
+  rota:[
+    /* I IV I64 V VI      */ {id:'R1',m:'M',gr:['V','VI'],q:[2,2,2,2,4],ev:[[76,67,60,48],[77,69,60,53],[76,67,60,55],[74,67,59,55],[72,64,60,57]],t:[['C',0],['G',-5],['F',-7],['D',2],['Bb',-2]]},
+    /* I V6 I IV V7 VI    */ {id:'R2',m:'M',gr:['V','VI'],q:[2,1,1,2,2,4],ev:[[72,67,64,48],[74,67,62,47],[76,67,60,48],[77,69,60,53],[77,67,59,55],[76,72,60,57]],t:[['C',0],['G',-5],['F',-7],['Bb',-2]]},
+    /* I IV I64 V VI      */ {id:'R3',m:'m',gr:['V','VI'],q:[2,2,2,2,4],ev:[[72,64,57,45],[74,65,57,50],[72,64,57,52],[71,64,56,52],[69,60,57,53]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]},
+    /* I V6 I II6 V7 VI   */ {id:'R4',m:'m',gr:['V','VI'],q:[2,1,1,2,2,4],ev:[[72,64,57,45],[71,64,59,44],[72,64,57,45],[74,65,59,50],[71,62,56,52],[69,60,57,53]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]}],
+  semicadencia:[
+    /* I V6 VI IV V       */ {id:'S1',m:'M',gr:['IV','V'],q:[2,2,2,2,4],ev:[[76,67,55,48],[74,67,55,47],[72,64,57,45],[72,65,57,41],[71,62,55,43]],t:[['C',0],['F',5],['D',2],['Bb',-2]]},
+    /* I IV I II V        */ {id:'S2',m:'M',gr:['II','V'],q:[2,2,2,2,4],ev:[[76,67,60,48],[77,69,60,53],[76,67,60,48],[77,65,57,50],[74,67,59,55]],t:[['C',0],['G',-5],['F',-7],['D',2],['Bb',-2]]},
+    /* I V6 I IV V        */ {id:'S3',m:'m',gr:['IV','V'],q:[2,2,2,2,4],ev:[[72,64,57,45],[71,64,59,44],[69,64,60,45],[69,65,62,50],[68,64,59,52]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]},
+    /* I VI IV I V        */ {id:'S4',m:'m',gr:['I','V'],q:[2,2,2,2,4],ev:[[69,64,60,45],[72,65,57,41],[74,65,57,50],[72,64,57,45],[71,64,56,52]],t:[['Am',0],['Em',-5],['Dm',5],['Bm',2],['Gm',-2]]}]
+};
+/* tonalidad: [tónica (para el deletreo), alteraciones de la armadura, armadura de VexFlow, nombre] */
+const CAD_TON={C:['C',0,'C','Do M'],G:['G',1,'G','Sol M'],F:['F',-1,'F','Fa M'],D:['D',2,'D','Re M'],Bb:['Bb',-2,'Bb','Sib M'],
+  Am:['A',0,'Am','La m'],Em:['E',1,'Em','Mi m'],Dm:['D',-1,'Dm','Re m'],Bm:['B',2,'Bm','Si m'],Gm:['G',-2,'Gm','Sol m']};
 function mulb(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 function cadenciaDe(semilla){
   const R=mulb(((Number(semilla)||0)*17+3)>>>0);
-  const c=CAD4[Math.floor(R()*4)], ks=CAD_TON[c.modo], k=ks[Math.floor(R()*ks.length)];
-  let semis=((k[1]-c.ref)%12+12)%12; if(semis>6) semis-=12;
-  let ev=c.ev.map(e=>({midi:e.midi.map(m=>m+semis),q:e.q}));
-  const hi=Math.max(...ev.map(e=>e.midi[0])), lo=Math.min(...ev.map(e=>e.midi[3]));
-  let sh=0; if(lo<40&&hi+12<=83) sh=12; else if(hi>81&&lo-12>=37) sh=-12;
-  if(sh) ev=ev.map(e=>({midi:e.midi.map(m=>m+sh),q:e.q}));
-  return {id:c.id,nom:c.nom,rn:c.rn,gr:c.gr,expl:c.expl,modo:c.modo,tonica:k[0],sharps:k[2],vexKey:k[3],
-    titulo:(c.id==='semicadencia'?'Semicadencia':'Cadencia '+c.nom.toLowerCase()),
-    tonalidad:CAD_NOM[k[0]]+(c.modo==='major'?' M':' m'),ev};
+  const c=CAD4[Math.floor(R()*4)], vs=CAD_VAR[c.id], v=vs[Math.floor(R()*vs.length)], kt=v.t[Math.floor(R()*v.t.length)];
+  const K=CAD_TON[kt[0]], d=kt[1];
+  const ev=v.ev.map((m,i)=>({midi:m.map(x=>x+d),q:v.q[i]}));
+  return {id:c.id,nom:c.nom,rn:c.rn,gr:v.gr,expl:c.expl,modo:v.m==='M'?'major':'minor',tonica:K[0],sharps:K[1],vexKey:K[2],
+    titulo:(c.id==='semicadencia'?'Semicadencia':'Cadencia '+c.nom.toLowerCase()),tonalidad:K[3],ev,variante:v.id};
 }
+/* (30-sep-2026) para el iPad (index.html): qué tipo de cadencia da una semilla, y así «Generar» no repite el del anterior */
+window.PCCadencia=function(semilla){ try{ return cadenciaDe(semilla); }catch(e){ return null; } };
 /* iPad: al generar, en una esquina, qué cadencia saldrá en el bonus */
 if(!/[?&]pantalla=1(&|$)/.test(location.search)){
   try{
@@ -1067,15 +1092,20 @@ async function ejArmonico(){
   // (30-sep-2026, Iago) aprendizaje guiado, en los mismos 20 s: el acorde del ejercicio → el acorde ordenado → la nota del
   // ordenado que hace de bajo se duplica y baja despacio hasta el bajo → «El bajo es la … del acorde» → «Por lo tanto, el
   // acorde está en…» → solución marcada, y quedan unos 4 s
-  await correccion(()=>{ const t0=ahora();
+  // (30-sep-2026, Iago) «pon la referencia de la nota del bajo»: primero se marca el bajo del acorde del ejercicio (aro,
+  // «bajo» y suena); después, en el acorde ordenado, qué es cada nota (fund. · 3ª · 5ª) con la que corresponde destacada;
+  // esa nota se desplaza hasta el sitio del bajo, y entonces «El bajo es la … del acorde» → «Por lo tanto…» → inversión
+  await correccion(()=>{ const t0=ahora(), ROLC=['la fundamental','la tercera','la quinta'];
     A.verOriginal(); bloque(t0+0.05,m2,2.0);
-    enTiempo(t0+S(2.3),()=>{ A.verOrdenado(); });
-    arpegio(t0+S(2.3),A.ord.map(n=>n.midi),0.5,1.0);
-    enTiempo(t0+S(5.0),()=>{ A.explicaRoles(); });
-    enTiempo(t0+S(6.3),()=>{ A.viaja(S(2.6)); });
-    nota(t0+S(8.9),m2[0],0.8,S(1.2));
-    enTiempo(t0+S(9.0),()=>{ A.explicaBajo(); cartel('El bajo es '+ROLN[b.inv]+' del acorde','Tiple: '+b.tiple+' · Bajo: '+b.bajo); });
-    enTiempo(t0+S(12.6),()=>{ cartel('Por lo tanto, el acorde está en…',''); });
+    enTiempo(t0+S(2.3),()=>{ A.explicaBajo(); cartel('Esta es la nota del bajo',b.bajo); });
+    nota(t0+S(2.35),m2[0],0.85,S(1.4));
+    enTiempo(t0+S(4.6),()=>{ A.verOrdenado(); cartel('El acorde ordenado','Por terceras: fundamental, tercera y quinta'); });
+    arpegio(t0+S(4.65),A.ord.map(n=>n.midi),0.5,1.0);
+    enTiempo(t0+S(6.9),()=>{ A.explicaRoles(); cartel('En el acorde ordenado, '+b.bajo+' es '+ROLC[b.inv],''); });
+    enTiempo(t0+S(8.3),()=>{ A.viaja(S(2.5)); });
+    nota(t0+S(10.85),m2[0],0.85,S(1.2));
+    enTiempo(t0+S(10.9),()=>{ cartel('El bajo es '+ROLN[b.inv]+' del acorde','Tiple: '+b.tiple+' · Bajo: '+b.bajo); });
+    enTiempo(t0+S(13.2),()=>{ cartel('Por lo tanto, el acorde está en…',''); });
     enTiempo(t0+S(15.4),()=>{ A.ok2(); cartel(INV[b.inv],'El bajo ('+b.bajo+') es '+ROLN[b.inv]+' del acorde'); bloque(ahora()+0.05,m2,1.8); });
     return 16.2; },20,3.8);
 }
