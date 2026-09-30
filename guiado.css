@@ -1,0 +1,287 @@
+/* ============================================================================
+   PreDict Carrusel (Grado Elemental) · MODO GUIADO en la pantalla de clase
+   (30-sep-2026, Iago) Solo actúa con html.pcg-on, que pone guiado.js con ?pantalla=1.
+   Rendimiento (el ordenador de clase va justo): durante los ejercicios NO se mueve nada por detrás;
+   solo hay movimiento (transform/opacity, por GPU) en la portada, los créditos y el paso de un
+   ejercicio a otro. Texto en blanco; el color del ejercicio, solo en detalles.
+   ============================================================================ */
+html.pcg-on,html.pcg-on body{height:100%;margin:0;overflow:hidden;background:#0c0926!important}
+html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!important;width:1280px!important;visibility:hidden!important;pointer-events:none!important}
+#pcg{position:fixed;inset:0;overflow:hidden;z-index:50;color:#fff;font-family:"Helvetica Neue",Arial,system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;cursor:default;line-height:1.25}
+#pcg.quieto{cursor:none}
+#pcg *{box-sizing:border-box}
+#pcgStage{position:absolute;left:0;top:0;width:1600px;height:900px;transform-origin:0 0;z-index:1}
+
+/* ---------- fondos ---------- */
+.pcg-fondos{position:absolute;inset:0;overflow:hidden;z-index:0}
+.pcg-fondo{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
+.pcg-fondo.on{opacity:1}
+.f-base{opacity:1;background:linear-gradient(160deg,#1d1545,#0c0926 60%,#070512)}
+/* portada y créditos: remolino multicolor que gira despacio (una sola capa) + anillos quietos encima */
+.f-multi .giro{position:absolute;left:50%;top:50%;width:70vmax;height:70vmax;margin:-35vmax 0 0 -35vmax;border-radius:50%;
+  background:conic-gradient(from 0deg,#ff5fa2,#ff9a3c,#ffd23f,#34d399,#5bd0ff,#7c6cff,#bd92ff,#ff5fa2);
+  transform:scale(2.2);will-change:transform}
+.f-multi.on .giro{animation:pcgGiro 90s linear infinite}
+@keyframes pcgGiro{from{transform:scale(2.2) rotate(0deg)}to{transform:scale(2.2) rotate(360deg)}}
+.f-multi::after{content:"";position:absolute;inset:0;
+  background:repeating-radial-gradient(circle at 50% 42%,rgba(10,7,30,0) 0 34px,rgba(10,7,30,.30) 34px 68px),
+             radial-gradient(ellipse 72% 72% at 50% 42%,rgba(10,7,30,.34),rgba(10,7,30,.86) 80%)}
+/* ejercicios: grises con un toque del color (fijo) */
+.f-ej{background:
+   radial-gradient(900px 620px at 8% 0%,rgba(var(--rgb),.30),transparent 70%),
+   radial-gradient(760px 560px at 100% 100%,rgba(var(--rgb),.16),transparent 70%),
+   radial-gradient(1100px 700px at 60% 40%,rgba(255,255,255,.07),transparent 70%),
+   repeating-conic-gradient(from 0deg at 8% 0%,rgba(255,255,255,.028) 0 5deg,rgba(255,255,255,0) 5deg 10deg),
+   linear-gradient(165deg,#23252f 0%,#16171e 55%,#0d0e12 100%)}
+.f-rit{--rgb:52,211,153}.f-mel{--rgb:91,208,255}.f-ton{--rgb:255,154,60}.f-arm{--rgb:189,146,255}.f-bon{--rgb:255,210,63}
+
+/* ---------- paso de un ejercicio a otro: el «bioma» ---------- */
+.pcg-bioma{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;border-radius:50%;pointer-events:none;
+  background:
+    repeating-conic-gradient(from 0deg,rgba(255,255,255,.09) 0 6deg,rgba(255,255,255,0) 6deg 12deg),
+    radial-gradient(circle,var(--c) 0,rgba(var(--rgb),.85) 16%,rgba(var(--rgb),.5) 34%,rgba(12,12,18,.0) 60%);
+  transform:scale(0) rotate(-40deg);opacity:1;will-change:transform,opacity;z-index:1}
+.pcg-bioma.va{animation:pcgBioma 3.3s cubic-bezier(.22,.8,.25,1) forwards}
+@keyframes pcgBioma{0%{transform:scale(0) rotate(-40deg);opacity:1}38%{transform:scale(1) rotate(0deg);opacity:1}72%{opacity:.9}100%{transform:scale(1.25) rotate(12deg);opacity:0}}
+
+/* ---------- portada y créditos ---------- */
+.pcg-portada{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:pcgEntra .9s ease both}
+.pcg-logo{width:290px;height:290px;margin-bottom:10px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}
+.pcg-logo svg{width:100%;height:100%;display:block;animation:pcgGiroLogo 26s linear infinite;will-change:transform}
+@keyframes pcgGiroLogo{to{transform:rotate(360deg)}}
+.pcg-titulo{margin:0;display:flex;align-items:baseline;justify-content:center;gap:24px;line-height:1;text-shadow:0 8px 34px rgba(0,0,0,.5)}
+.pcg-titulo .pd{font-size:150px;font-weight:900;letter-spacing:-.03em}
+.pcg-titulo .pre{color:#fff;font-weight:800}
+.pcg-titulo .dict{color:#e2ddff;font-weight:300}
+.pcg-titulo .carr{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:700;font-size:94px;display:inline-block;
+  transform:rotate(-8deg) translateY(-16px);padding:0 .1em;text-shadow:none;
+  background:linear-gradient(100deg,#5bd0ff 8%,#ffd23f 40%,#ff9a3c 60%,#bd92ff 92%);-webkit-background-clip:text;background-clip:text;
+  color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 6px 22px rgba(0,0,0,.45))}
+.pcg-kick{margin-top:16px;font-size:30px;font-weight:700;color:#f1eeff;letter-spacing:.03em;text-shadow:0 2px 14px rgba(0,0,0,.6)}
+.pcg-empezar{margin-top:46px;font:inherit;font-size:40px;font-weight:900;color:#1a1238;border:0;cursor:pointer;padding:26px 66px;border-radius:999px;
+  background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 6px rgba(255,255,255,.22);transition:transform .15s,filter .15s}
+.pcg-empezar:hover{transform:scale(1.03)}
+.pcg-empezar:disabled{opacity:.55;cursor:wait;transform:none}
+.pcg-empezar .dot{display:inline-block;width:.7em;height:.7em;margin-right:.45em;border-radius:50%;vertical-align:-.04em;
+  background:conic-gradient(#ff5fa2,#ff9a3c,#ffd23f,#34d399,#5bd0ff,#bd92ff,#ff5fa2)}
+.pcg-ultimo{margin-top:30px;font-size:23px;color:rgba(245,242,255,.78);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.6)}
+.pcg-ultimo small{display:block;margin-top:6px;font-size:17px;color:rgba(245,242,255,.55);font-weight:600}
+.pcg-fin .pcg-kick{font-size:40px;margin-top:22px}
+.pcg-fin .pasos4{display:flex;gap:18px;margin-top:26px}
+.pcg-fin .pasos4 i{width:20px;height:20px;border-radius:50%;background:var(--c);box-shadow:0 0 14px var(--c)}
+.pcg-volver{margin-top:40px;font:inherit;font-size:22px;font-weight:800;color:#fff;background:rgba(10,8,30,.45);border:1.5px solid rgba(255,255,255,.35);
+  border-radius:999px;padding:14px 30px;cursor:pointer}
+
+/* ---------- cartel de transición ---------- */
+.pcg-trans{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;z-index:2}
+.pcg-trans::before{content:"";position:absolute;left:-100px;right:-100px;top:250px;height:430px;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,11,18,0),rgba(10,11,18,.55) 30%,rgba(10,11,18,.55) 70%,rgba(10,11,18,0));animation:pcgEntra .8s .2s ease both}
+.pcg-trans .ico{width:190px;height:190px;animation:pcgIcoIn 1.2s cubic-bezier(.2,.9,.3,1.15) both;filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}
+.pcg-trans .ico svg{width:100%;height:100%;display:block}
+.pcg-trans .lin{font-size:92px;font-weight:300;letter-spacing:.04em;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.4);animation:pcgLinIn .9s .25s cubic-bezier(.2,.9,.3,1.1) both;white-space:nowrap}
+.pcg-trans .lin b{font-weight:900}
+.pcg-trans .pasos{display:flex;gap:16px;animation:pcgEntra .8s .5s ease both}
+.pcg-trans .pasos i{width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.28)}
+.pcg-trans .pasos i.hecho{background:#fff;opacity:.75}
+.pcg-trans .pasos i.act{background:#fff;box-shadow:0 0 18px #fff;transform:scale(1.35)}
+.pcg-trans .pasos i.estrella{border-radius:3px;transform:rotate(45deg) scale(.85)}
+.pcg-trans .pasos i.estrella.act{background:#ffd23f;box-shadow:0 0 18px #ffd23f;transform:rotate(45deg) scale(1.2)}
+.pcg-trans.fuera{animation:pcgFuera .5s ease forwards}
+@keyframes pcgIcoIn{0%{opacity:0;transform:scale(.3) rotate(-220deg)}100%{opacity:1;transform:none}}
+@keyframes pcgLinIn{0%{opacity:0;transform:translateY(40px) scale(.94)}100%{opacity:1;transform:none}}
+@keyframes pcgEntra{0%{opacity:0}100%{opacity:1}}
+@keyframes pcgFuera{to{opacity:0;transform:scale(1.03)}}
+
+/* ---------- escena de ejercicio ---------- */
+.pcg-ej{position:absolute;inset:0;animation:pcgEntra .7s ease both}
+.pcg-chip{position:absolute;left:46px;top:36px;display:flex;align-items:center;gap:14px;padding:9px 26px 9px 12px;border-radius:999px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14)}
+.pcg-chip svg{width:52px;height:52px;display:block}
+.pcg-chip .t{font-size:30px;letter-spacing:.06em;color:#fff}
+.pcg-chip .t b{font-weight:900}.pcg-chip .t i{font-style:normal;font-weight:300;opacity:.85}
+.pcg-marca{position:absolute;right:48px;top:48px;font-size:25px;opacity:.72;white-space:nowrap}
+.pcg-marca .pre{font-weight:800}.pcg-marca .dict{font-weight:300}
+.pcg-marca .carr{font-family:Georgia,serif;font-style:italic;font-weight:700;margin-left:6px}
+.pcg-cartel{position:absolute;left:170px;right:170px;top:122px;height:120px;text-align:center;display:flex;flex-direction:column;justify-content:flex-start}
+.pcg-cartel .big{font-size:52px;font-weight:900;letter-spacing:-.01em;line-height:1.08;text-shadow:0 3px 18px rgba(0,0,0,.45)}
+.pcg-cartel .sub{margin-top:10px;font-size:28px;font-weight:600;color:rgba(255,255,255,.78)}
+.pcg-cartel.cambia{animation:pcgCartel .45s ease}
+@keyframes pcgCartel{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+.pcg-hoja{position:absolute;left:80px;right:80px;top:258px;height:470px;border-radius:30px;background:#f7f6ff;color:#16132b;
+  box-shadow:0 30px 80px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:26px 38px;overflow:hidden}
+.pcg-hoja::before{content:"";position:absolute;left:0;right:0;top:0;height:8px;background:var(--c)}
+.pcg-pie{position:absolute;left:0;right:0;bottom:30px;height:124px;display:flex;align-items:center;justify-content:center;gap:24px}
+.pcg-capa{position:absolute;inset:0;pointer-events:none}
+
+/* notación (VexFlow) */
+.pcg-nota{width:100%;display:flex;align-items:center;justify-content:center}
+.pcg-nota>div{width:100%!important}
+.pcg-nota svg{width:100%!important;height:auto!important;display:block;overflow:visible}
+#pcg .pcg-oc{opacity:0;transition:opacity .6s ease}
+#pcg .pcg-oc.pcg-si{opacity:1}
+#pcg .pcg-caja{fill:#f9f9fc;stroke:#b2b2c7;stroke-width:1.6;stroke-dasharray:6 5;transition:stroke .5s,fill .5s}
+#pcg .pcg-caja.llena{stroke:var(--c2);stroke-dasharray:none;stroke-width:2.6;fill:#fff}
+#pcg .pcg-caja-ph{font:600 15px "Helvetica Neue",Arial,sans-serif;fill:#b2b2c7;transition:opacity .4s}
+#pcg .pcg-caja-t{font:800 24px "Helvetica Neue",Arial,sans-serif;fill:#16132b}
+#pcg .pcg-hl{fill:rgba(var(--rgb),.22);stroke:none;opacity:0;transition:opacity .25s}
+#pcg .pcg-hl.on{opacity:1}
+#pcg .pcg-num{font:700 17px "Helvetica Neue",Arial,sans-serif;fill:#8089a8;transition:fill .2s}
+#pcg .pcg-num.act{fill:#fff}
+#pcg .pcg-num-aro{fill:none;stroke:#8089a8;stroke-width:1.4}
+#pcg .pcg-num-hl{fill:var(--c2);opacity:0;transition:opacity .2s}
+#pcg .pcg-num-hl.on{opacity:1}
+#pcg .pcg-int-l{stroke-width:4.5;stroke-linecap:round;fill:none}
+#pcg .pcg-int-b{fill:#fff;stroke:#d9d4f0;stroke-width:1}
+#pcg .pcg-int-t{font:800 15px "Helvetica Neue",Arial,sans-serif;fill:#111}
+#pcg .pcg-q{font:900 34px "Helvetica Neue",Arial,sans-serif;fill:var(--c2)}
+#pcg .pcg-rol{font:800 9.5px "Helvetica Neue",Arial,sans-serif;fill:#6b6590}
+#pcg .pcg-rol.clave{fill:#f97316}
+#pcg .pcg-anillo{fill:none;stroke:#f97316;stroke-width:2}
+#pcg .pcg-flechita{fill:none;stroke:#f97316;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#pcg .pcg-flechita.gruesa{stroke-width:3}
+#pcg .pcg-paren{fill:none;stroke:var(--c2);stroke-width:2.2;stroke-linecap:round}
+
+/* cuenta atrás (5·4·3·2·1) en grande */
+.pcg-cuenta{position:absolute;left:800px;top:493px;transform:translate(-50%,-50%) scale(.7);font:900 230px/1 "Helvetica Neue",Arial,sans-serif;color:#fff;opacity:0;
+  text-shadow:0 0 34px rgba(var(--rgb),.85),0 8px 26px rgba(0,0,0,.4);pointer-events:none;z-index:7}
+.pcg-cuenta.on{animation:pcgCuenta .6s cubic-bezier(.2,1.2,.3,1) forwards}
+@keyframes pcgCuenta{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
+/* «Solución en 5…»: el número se queda hasta el siguiente */
+.pcg-velo{position:absolute;left:80px;right:80px;top:258px;height:470px;border-radius:30px;background:rgba(22,23,31,.96);opacity:0;transition:opacity .4s;z-index:6;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.pcg-velo.on{opacity:1}
+.pcg-velo .t{font-size:54px;font-weight:800;color:#fff;letter-spacing:.01em}
+.pcg-velo .n{font:900 210px/1 "Helvetica Neue",Arial,sans-serif;color:#fff;text-shadow:0 0 34px rgba(var(--rgb),.8)}
+.pcg-velo .n.pop{animation:pcgPop .45s cubic-bezier(.2,1.3,.3,1)}
+@keyframes pcgPop{0%{transform:scale(.6);opacity:.2}100%{transform:none;opacity:1}}
+
+/* reloj de escribir (anillo) */
+.pcg-reloj{position:relative;width:106px;height:106px;flex:none}
+.pcg-reloj svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+.pcg-reloj circle{fill:none;stroke-width:9}
+.pcg-reloj .fondo{stroke:rgba(255,255,255,.16)}
+.pcg-reloj .arco{stroke:var(--c);stroke-linecap:round;stroke-dasharray:276.5;stroke-dashoffset:0;animation:pcgArco linear forwards}
+@keyframes pcgArco{to{stroke-dashoffset:276.5}}
+.pcg-reloj b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:900}
+.pcg-reloj-t{font-size:38px;font-weight:800;text-shadow:0 2px 12px rgba(0,0,0,.4)}
+/* corrección: número discreto abajo a la derecha, sin sonido */
+.pcg-corr{position:absolute;right:46px;bottom:34px;display:flex;align-items:center;gap:12px;opacity:0;transition:opacity .5s;z-index:5}
+.pcg-corr.on{opacity:.8}
+.pcg-corr span{font-size:18px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase}
+.pcg-corr b{min-width:66px;height:66px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff}
+
+/* flecha + bocadillo (el aviso) */
+.pcg-guia{position:absolute;display:flex;align-items:center;gap:4px;opacity:0;transition:opacity .35s ease;z-index:8;pointer-events:none}
+.pcg-guia.on{opacity:1}
+.pcg-guia .bocadillo{background:#1c1b27;color:#fff;font-size:34px;font-weight:800;padding:14px 30px;border-radius:22px;
+  border:3px solid var(--c);box-shadow:0 14px 34px rgba(0,0,0,.38);white-space:nowrap;max-width:1100px}
+.pcg-guia .bocadillo.largo{white-space:normal;text-align:center;width:max-content;max-width:900px}
+.pcg-guia .flecha{flex:none;display:block}
+.pcg-guia .flecha.fv{width:54px;height:84px}
+.pcg-guia .flecha.fh{width:84px;height:54px}
+.pcg-guia.lado-arriba{flex-direction:column;transform:translate(-50%,-100%)}
+.pcg-guia.lado-abajo{flex-direction:column-reverse;transform:translate(-50%,0)}
+.pcg-guia.lado-izq{flex-direction:row;transform:translate(-100%,-50%)}
+.pcg-guia.lado-der{flex-direction:row-reverse;transform:translate(0,-50%)}
+.pcg-guia.lado-arriba .flecha{animation:pcgBoteA .9s ease-in-out infinite}
+.pcg-guia.lado-abajo .flecha{animation:pcgBoteB .9s ease-in-out infinite}
+.pcg-guia.lado-izq .flecha{animation:pcgBoteI .9s ease-in-out infinite}
+.pcg-guia.lado-der .flecha{animation:pcgBoteD .9s ease-in-out infinite}
+@keyframes pcgBoteA{50%{transform:translateY(9px)}}
+@keyframes pcgBoteB{50%{transform:translateY(-9px)}}
+@keyframes pcgBoteI{50%{transform:translateX(9px)}}
+@keyframes pcgBoteD{50%{transform:translateX(-9px)}}
+.pcg-destello{position:absolute;border-radius:18px;box-shadow:0 0 0 4px var(--c),0 0 36px 8px rgba(var(--rgb),.75);opacity:0;animation:pcgDestello 1.4s ease-out forwards;pointer-events:none;z-index:4}
+@keyframes pcgDestello{0%{opacity:0;transform:scale(1.25)}25%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.02)}}
+.pcg-mensaje{position:absolute;left:50%;top:493px;transform:translate(-50%,-50%);width:1160px;padding:40px 60px;border-radius:30px;background:#1c1b27;color:#fff;
+  font-size:44px;font-weight:700;line-height:1.3;text-align:center;box-shadow:0 30px 80px rgba(0,0,0,.5);border:4px solid var(--c);opacity:0;transition:opacity .5s;z-index:8}
+.pcg-mensaje.on{opacity:1}
+.pcg-mensaje b{font-weight:900}
+
+/* nube de pensamiento del rítmico (ayudita fugaz) */
+.pcg-nube{position:absolute;left:150px;top:196px;width:1300px;height:720px;opacity:0;transform:scale(.92);transform-origin:50% 45%;
+  transition:opacity .45s ease,transform .6s cubic-bezier(.2,.9,.3,1.15);z-index:9;pointer-events:none}
+.pcg-nube.on{opacity:1;transform:none}
+.pcg-nube .nube-f{position:absolute;inset:0;width:100%;height:100%;fill:#fbfaff;filter:drop-shadow(0 18px 36px rgba(0,0,0,.38))}
+.pcg-nube .nube-in{position:absolute;left:0;right:0;top:70px;height:650px}
+.pcg-nube .celda{position:absolute;width:0;height:0;opacity:0}
+.pcg-nube .celda .celda-svg{position:absolute;left:0;top:0;transform:translate(-50%,-50%);height:150px;width:auto!important}
+.pcg-nube .celda svg{height:150px!important;width:auto!important;display:block;overflow:visible}
+.pcg-nube.va .celda{animation:pcgPiensa 1.7s ease both}
+@keyframes pcgPiensa{0%{opacity:0;transform:translateY(18px) scale(.8) rotate(var(--r))}18%{opacity:.86;transform:rotate(var(--r))}70%{opacity:.86;transform:rotate(var(--r))}100%{opacity:0;transform:translateY(-20px) scale(1.05) rotate(var(--r))}}
+
+/* ★ bonus: cadencia */
+.pcg-bon{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+.pcg-bon{position:relative}
+.pcg-bon .bon-ton{position:absolute;left:6px;top:0;padding:8px 18px;border-radius:14px;border:2.5px solid #a16207;background:#fff8e1;
+  font-size:26px;font-weight:700;color:#2a2517}
+.pcg-bon .bon-ton b{font-weight:900;color:#a16207}
+.pcg-bon .bon-part{width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.pcg-bon .bon-part .pcg-nota{height:100%}
+.pcg-bon .bon-part svg{width:100%!important;height:100%!important}
+.pcg-bon .bon-ops{display:flex;gap:18px;justify-content:center;max-height:0;overflow:hidden;transition:opacity .6s ease,max-height .7s ease}
+.pcg-bon .bon-ops.pcg-si{max-height:150px;overflow:visible}
+.pcg-bon .op{min-width:250px;padding:12px 22px;border-radius:18px;border:2.5px solid #e2dccb;background:#fff;text-align:center;transition:all .5s}
+.pcg-bon .op b{display:block;font-size:30px;font-weight:900;color:#2a2517}
+.pcg-bon .op span{display:block;margin-top:2px;font-size:22px;font-weight:700;color:#8a7f5c}
+.pcg-bon .op.ok{border-color:#a16207;background:#ffd23f;box-shadow:0 0 0 7px rgba(255,210,63,.35);transform:scale(1.07)}
+.pcg-bon .op.ok b,.pcg-bon .op.ok span{color:#2a2008}
+.pcg-bon .op.no{opacity:.35}
+#pcg .pcg-cadhl{fill:rgba(255,210,63,.28);stroke:none;opacity:0;transition:opacity .2s}
+#pcg .pcg-cadhl.on{opacity:1}
+#pcg .pcg-cadfin path{fill:#b45309;stroke:#b45309}
+#pcg .pcg-cadrn{font:900 19px "Helvetica Neue",Arial,sans-serif;fill:#a16207}
+
+/* TonCom: tres casillas */
+.pcg-ton{display:flex;gap:38px;width:100%;justify-content:center;align-items:stretch}
+.pcg-ton .tc{flex:1;max-width:380px;border:2px solid #d9d4f0;border-radius:22px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.pcg-ton .lab{font-size:22px;letter-spacing:.14em;text-transform:uppercase;color:#fff;font-weight:800;background:#2a2838;padding:14px;text-align:center;border-bottom:5px solid var(--c)}
+.pcg-ton .val{position:relative;height:250px;display:flex;align-items:center;justify-content:center}
+.pcg-ton .q{position:absolute;font-size:120px;font-weight:900;color:#e4e0f2;transition:opacity .4s}
+.pcg-ton .val.visto .q{opacity:0}
+.pcg-ton .sol{font-size:76px;font-weight:900;color:#16132b;text-align:center;line-height:1}
+.pcg-ton .sol small{display:block;margin-top:14px;font-size:26px;font-weight:700;color:#6b6590}
+.pcg-ton .sol .cp{display:inline-flex;flex-direction:column;line-height:.9;font-size:96px}
+
+/* Armónico: dos acordes, como en la ficha */
+.pcg-arm{display:grid;grid-template-columns:440px 1fr;gap:28px;width:100%;height:100%}
+.arm-p{position:relative;border:2px solid #e4e0f5;border-radius:24px;padding:16px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:opacity .6s ease;background:#fff}
+.arm-p.apagado{opacity:.3}
+.arm-p .cap{font-size:19px;font-weight:800;letter-spacing:.12em;color:#7b739f;text-transform:uppercase}
+.arm-p .penta{position:relative;width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.arm-p .penta .pcg-nota{height:100%}
+.arm-p .penta svg{width:100%!important;height:100%!important;max-height:100%}
+.arm-ops{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.arm-ops>span{font-size:27px;font-weight:900;color:#4d4670;border:2.5px solid #d9d4f0;background:#fff;border-radius:16px;padding:7px 18px;transition:all .45s;
+  display:inline-flex;align-items:center;gap:6px}
+.arm-ops>span .cifras{display:inline-flex;flex-direction:column;font-size:15px;line-height:1.02}
+.arm-ops>span.ok{border-color:var(--c2);color:#fff;background:var(--c2);box-shadow:0 0 0 6px rgba(var(--rgb),.28);transform:scale(1.08)}
+.arm-slots{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
+.arm-slots div{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;color:#8a83ad;padding:7px 16px;border-radius:14px;border:2px solid #e4e0f5;background:#fff;transition:all .25s}
+.arm-slots div i{width:14px;height:14px;border-radius:50%;background:#d9d4f0;transition:background .2s}
+.arm-slots div b{color:#16132b;font-weight:900}
+.arm-slots div.dada b{color:var(--c2)}
+.arm-slots div.luz{border-color:var(--c2);color:#16132b;box-shadow:0 0 0 4px rgba(var(--rgb),.22)}
+.arm-slots div.luz i{background:var(--c2)}
+.arm-nombres{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:22px;font-weight:800;color:#4d4670}
+
+/* pausa y mandos (abajo a la IZQUIERDA: la derecha es del número de la corrección) */
+#pcg.pausa *,#pcg.pausa *::before,#pcg.pausa *::after{animation-play-state:paused!important}
+.pcg-pausa-tag{position:absolute;left:50%;top:20px;transform:translateX(-50%);padding:10px 28px;border-radius:999px;background:rgba(0,0,0,.66);font-size:24px;font-weight:800;display:none;z-index:40;letter-spacing:.04em}
+#pcg.pausa .pcg-pausa-tag{display:block}
+.pcg-ctrl{position:absolute;left:16px;bottom:14px;display:flex;gap:10px;opacity:0;transition:opacity .35s;z-index:30}
+#pcg.raton .pcg-ctrl{opacity:.92}
+#pcg.en-portada .pcg-ctrl .solo-ej{display:none}
+.pcg-ctrl button{width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(10,8,30,.62);color:#fff;font-size:20px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.pcg-ctrl button:hover{background:rgba(255,255,255,.2)}
+.pcg-ctrl button svg{width:22px;height:22px;display:block}
+
+/* iPad (vista normal): qué cadencia saldrá en el bonus, discreto en una esquina */
+#pcgBonusIpad{position:fixed;right:12px;bottom:10px;z-index:30;padding:7px 14px;border-radius:12px;background:rgba(12,9,38,.72);
+  border:1px solid rgba(255,210,63,.45);color:#f3f0ff;font:600 13px "Helvetica Neue",Arial,sans-serif;letter-spacing:.01em;pointer-events:none}
+#pcgBonusIpad span{color:#ffd23f;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
+#pcgBonusIpad b{font-weight:900;color:#ffd23f;margin-left:4px}
+html.pc-pantalla #pcgBonusIpad{display:none}

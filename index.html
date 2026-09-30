@@ -209,6 +209,8 @@
     .btn-mini{display:none}
   }
 </style>
+<!-- (30-sep-2026, Iago) modo guiado en la pantalla de clase (?pantalla=1): portada, ejercicios guiados y créditos -->
+<link rel="stylesheet" href="guiado.css?v=1">
 </head>
 <body>
 <div class="wrap">
@@ -223,9 +225,9 @@
     </div>
     <div class="topactions">
       <span class="pc-origen" id="pcOrigen"></span>
-      <button class="btn-dado" onclick="generarTodo()" title="Aleatorizar toda la página">
+      <button class="btn-dado" onclick="generarTodo()" title="Generar un carrusel nuevo">
         <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/><circle cx="16" cy="8" r="1.7" fill="currentColor"/><circle cx="12" cy="12" r="1.7" fill="currentColor"/><circle cx="8" cy="16" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/></svg>
-        Aleatorizar todo
+        Generar carrusel
       </button>
     </div>
   </div>
@@ -1063,6 +1065,7 @@ function ajustarPantalla(){
 }
 let _ajusteT=0;
 function abrirPantalla(){
+  if(window.PCGuiado){ PCGuiado.abrir(); return; }   // (30-sep-2026) carrusel GUIADO (guiado.js); sin él, el de siempre
   fetch(PC_SB+'/rest/v1/app_config?select=value&key=eq.'+PC_CLAVE,{ cache:'no-store',
     headers:{ apikey:PC_SB_KEY, Authorization:'Bearer '+PC_SB_KEY } })
   .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
@@ -1116,5 +1119,6 @@ window.addEventListener('load',()=>{
   guardarSesion(seed);
 });
 </script>
+<script src="guiado.js?v=1"></script>
 </body>
 </html>
