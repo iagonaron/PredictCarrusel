@@ -19,6 +19,9 @@
    línea que parpadean y las notas grave/central/aguda pegadas al acorde; bonus sin campanita; sin trazo negro en los
    textos de las partituras; el remolino y el «bioma» se pintan una vez en un lienzo pequeño (la espiral iba a tirones).
    · Pruebas: ?prep=0 se salta el minuto de preparación.
+   (30-sep-2026, noche, Iago, tras probarlo en clase) «Funcionó muy bien»: la preparación pasa de 60 a 45 s; en las cuatro
+   pruebas, 2 s más antes del «Solución en 5…1» y 3 s más de solución antes de pasar a la siguiente; en el armónico, la
+   solución del acorde 1 se queda 5 s más antes del acorde 2. En total, 10 s más que antes (−15 + 25).
    ============================================================================ */
 (function(){
 'use strict';
@@ -94,6 +97,7 @@ const QS=new URLSearchParams(location.search);
 const VEL=Math.min(40,Math.max(0.25,Number(QS.get('vel'))||1));          // solo para probar deprisa
 const EJ0=Math.min(5,Math.max(1,parseInt(QS.get('ej'),10)||1))-1;
 const PREP=(EJ0===0 && QS.get('prep')!=='0');                         // (30-sep-2026) minuto de preparación al empezar
+const PREP_S=45;                                                      // (30-sep-2026, noche, Iago) «en vez de 60 segundos, 45»
 const SEMQ=QS.get('semilla');
 const SEM_FORZADA=(SEMQ!=null&&SEMQ!==''&&Number.isFinite(Number(SEMQ)))?Number(SEMQ):null;
 const S=x=>x/VEL;
@@ -460,8 +464,9 @@ function pieTexto(t){ if(!ESC) return; ESC.pie.innerHTML=t?'<div class="pcg-relo
 /* final de cada ejercicio: 10 s para terminar. (30-sep-2026, Iago) «en lugar de 5 segundos extra, que sean los últimos 5
    del tiempo que ya había abajo»: 10…6 en el reloj de abajo y 5…1 en el centro («Solución en»), con un tic-tac que avisa
    de que se acaba el tiempo (antes, 10 + 5 s) */
+/* (30-sep-2026, noche, Iago) «dos segundos más antes de que aparezca la cuenta atrás de corrección»: 12…6 abajo (antes 10…6) */
 async function finEjercicio(sub,pieTexto){
-  sonidoUI('escribe'); await escribir(10,'Termina de completar el ejercicio',sub||'',pieTexto,null,5);
+  sonidoUI('escribe'); await escribir(12,'Termina de completar el ejercicio',sub||'',pieTexto,null,5);
   cartel('','');
   const V=ESC.velo, n=$('.n',V); n.textContent='5'; V.classList.add('on');
   const t0=ahora();
@@ -474,7 +479,8 @@ async function correccion(mostrar,seg,margen){
   cartel('Solución','Compara con lo que has escrito');
   ding();
   let dur=0; try{ dur=mostrar()||0; }catch(e){ console.error('[guiado]',e); }
-  const total=Math.max(seg||20,Math.ceil(dur+(margen==null?8:margen)));   // (30-sep-2026) melódico 35 s (animación + 7) · TonCom 10 s · el resto 20 s
+  const total=Math.max(seg||20,Math.ceil(dur+(margen==null?8:margen)))+3;   // (30-sep-2026) melódico 35 s (animación + 7) · TonCom 10 s · el resto 20 s
+  // (30-sep-2026, noche, Iago) «una vez se haya mostrado la corrección, antes de pasar al siguiente ejercicio, tres segundos más»: +3
   const C=ESC.corr, b=$('b',C); b.textContent=total; C.classList.add('on');
   const t0=ahora();
   for(let k=1;k<=total;k++){ await hasta(t0+S(k)); b.textContent=Math.max(0,total-k); }
@@ -1033,6 +1039,7 @@ async function ejArmonico(){
   await espera(2.0); A.luz1(null);
   { const arr=m1.slice().sort((p,q)=>p-q); await hasta(arpegio(ahora()+0.1,arr,0.7,1.2,0.7,i=>A.luz1(i))+S(0.3)); }
   A.luz1(null); await espera(0.3);
+  await espera(5);   // (30-sep-2026, noche, Iago) «un poquito más entre acorde 1 y acorde 2»: la solución del acorde 1, 5 s más a la vista
   let g;
   // ---------- ACORDE 2 · tiple, bajo e inversión
   // (30-sep-2026, Iago) «un poquito más despacio»: primero un cartelito de «Siguiente parte» y después «Acorde 2»…
@@ -1258,7 +1265,7 @@ function pintaPiano(){ const p=$('#pcgPiano'); if(!p) return;
    Desde «Empezar» hasta los créditos, con el minuto de preparación. Con la semilla del iPad se generan los mismos
    ejercicios que al empezar; cambia de un carrusel a otro lo que dura el ritmo, el dictado del TonCom, el acorde 1 y la
    cadencia; el resto es fijo (DUR_FIJA, medido con el reloj del audio en carruseles de prueba). */
-const DUR_FIJA=537.8, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep)
+const DUR_FIJA=547.8, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep) · 30-sep noche: −15 s de preparación, +8 (4 × 2 antes del 5…1), +12 (4 × 3 de solución), +5 (acorde 1) = +10
 function duracionCarrusel(sem){
   if(sem==null) return null; if(sem in DUR_CACHE) return DUR_CACHE[sem];
   let tot=null;
@@ -1377,39 +1384,45 @@ const MUS_DIB=[0,1,2,3,2,1,2,3];   // dibujo del arpegio (en semicorcheas)
 function musInicio(t0){ try{ musBuses(); const c=ac(), g=MUS_OUT.gain; g.cancelScheduledValues(c.currentTime); g.setValueAtTime(0.0001,c.currentTime);
   g.exponentialRampToValueAtTime(MUS_VOL,t0+S(1.5)); }catch(e){ console.warn('[guiado] música',e); } }
 function musCorta(){ try{ if(MUS_OUT&&AC){ const g=MUS_OUT.gain, n=AC.currentTime; g.cancelScheduledValues(n); g.setValueAtTime(Math.max(0.0001,g.value),n); g.linearRampToValueAtTime(0.0001,n+0.12); } }catch(e){} }
-/* programa un segundo de música (de s a s+1: dos pulsos) */
+/* programa un segundo de música (de s a s+1: dos pulsos).
+   (30-sep-2026, noche) con 45 s de preparación son 90 pulsos: para que el golpe del 0:00 caiga en la parte fuerte de un
+   compás, empieza con 2 pulsos de anacrusa (el arpegio de Sol, que lleva a Lam) y siguen 22 compases: 4 de acordes y
+   arpegio, 6 con bombo y bajo y 12 llenos (los 4 últimos, 8 s, con la subida y el redoble). Con 60 s sería como antes. */
 function musPrep(t0,s){ try{
-  if(s>60) return;
+  const P=2*PREP_S, OFF=P%4, FIN=P-OFF, NB=FIN/4, LLENO=4+Math.round((NB-4)*8/26), SUB=FIN-16;
+  if(s>PREP_S) return;
   for(let k=0;k<2;k++){
     const n=2*s+k, tb=t0+S(n*0.5), p=S(0.5);
-    if(n>120) continue;
-    if(n===120){   // 0:00: golpe final, y la música se apaga mientras entra el rítmico
+    if(n>P) continue;
+    if(n<OFF){ for(let j=0;j<2;j++) mArpegio(tb+j*p/2,[67,71,74,79][(2*n+j)%4],0.09); continue; }   // anacrusa
+    if(n===P){   // 0:00: golpe final, y la música se apaga mientras entra el rítmico
       mBombo(tb,0.6); mRuido(tb,1.6,0.09,'highpass',5200,0.5); mAcordes(tb,[57,64,69,71,76],S(1.4),0.026,2600,0); mTono('sine',mHz(45),tb,1.2,0.16,MUS_IN,0.006);
       const g=MUS_OUT.gain; g.setValueAtTime(MUS_VOL*1.3,tb+S(0.4)); g.exponentialRampToValueAtTime(0.0001,tb+S(1.9));
       continue; }
-    const B=Math.floor(n/4), bt=n%4, ch=MUS_PROG[B%4], lleno=B>=12, groove=B>=4, subida=n>=104;
-    if(bt===0) mAcordes(tb,ch.ac,S(2),groove?0.024:0.019,800+B*50,groove?p:0);   // acordes, uno por compás (el filtro se va abriendo)
+    const m=n-OFF, B=Math.floor(m/4), bt=m%4, ch=MUS_PROG[B%4], lleno=B>=LLENO, groove=B>=4, subida=m>=SUB;
+    if(bt===0) mAcordes(tb,ch.ac,S(2),groove?0.024:0.019,800+Math.round(B*1450/NB),groove?p:0);   // acordes, uno por compás (el filtro se va abriendo)
     if(lleno){ for(let j=0;j<4;j++) mArpegio(tb+j*p/4,ch.ar[MUS_DIB[(bt*4+j)%8]],j%2?0.075:0.1); }   // arpegio en semicorcheas…
     else { for(let j=0;j<2;j++) mArpegio(tb+j*p/2,ch.ar[MUS_DIB[(bt*4+j*2)%8]],0.11); }                // …o en corcheas
     if(B>=2) mRuido(tb+p/2,lleno?0.11:0.05,groove?0.09:0.05,'highpass',7000,0.7);            // charles a contratiempo
     if(lleno){ mRuido(tb+p/4,0.03,0.035,'highpass',8000,0.7); mRuido(tb+3*p/4,0.03,0.035,'highpass',8000,0.7); }
     if(groove){ mBombo(tb,0.32); mBajo(tb,ch.b,p*0.45,0.13); mBajo(tb+p/2,lleno?ch.b+12:ch.b,p*0.45,0.12); }
     if(lleno&&(bt===1||bt===3)) mPalmas(tb,0.16);
-    if(n===104){ mSubida(tb,S(8),0.2); const g=MUS_OUT.gain; g.setValueAtTime(MUS_VOL,tb); g.linearRampToValueAtTime(MUS_VOL*1.3,tb+S(8)); }   // los últimos 8 s: subida (y un poco más de volumen)…
-    if(subida){ const div=n>=112?4:2, g0=n>=112?0.07:0.05; for(let j=0;j<div;j++) mRuido(tb+j*p/div,0.08,g0+(n-104)*0.005,'bandpass',2300,0.7); }   // …y redoble
+    if(m===SUB){ mSubida(tb,S(8),0.2); const g=MUS_OUT.gain; g.setValueAtTime(MUS_VOL,tb); g.linearRampToValueAtTime(MUS_VOL*1.3,tb+S(8)); }   // los últimos 8 s: subida (y un poco más de volumen)…
+    if(subida){ const div=m>=SUB+8?4:2, g0=m>=SUB+8?0.07:0.05; for(let j=0;j<div;j++) mRuido(tb+j*p/div,0.08,g0+(m-SUB)*0.005,'bandpass',2300,0.7); }   // …y redoble
   }
 }catch(e){ console.warn('[guiado] música',e); } }
 /* ▲ música de preparación ====================================================================================== */
-/* (30-sep-2026, Iago) al pulsar «Empezar carrusel»: un minuto para coger el material (→ o «Siguiente» lo salta) */
+/* (30-sep-2026, Iago) al pulsar «Empezar carrusel»: un minuto para coger el material (→ o «Siguiente» lo salta).
+   (30-sep-2026, noche) 45 s (PREP_S) */
 async function preparacion(){
   EJ_ACT=-1; ESC=null; fondo('multi'); STAGE.innerHTML='';
-  const p=el('div','pcg-prep');
-  p.innerHTML='<div class="t">El carrusel empezará en…</div><div class="reloj">1:00</div>'+
+  const p=el('div','pcg-prep'), N=PREP_S, mmss=q=>Math.floor(q/60)+':'+String(q%60).padStart(2,'0');
+  p.innerHTML='<div class="t">El carrusel empezará en…</div><div class="reloj">'+mmss(N)+'</div>'+
     '<div class="sub">Coge tu libro, lápiz y goma antes de que se acabe el tiempo</div>';
   STAGE.appendChild(p);
-  const r=$('.reloj',p), t0=ahora()+0.15, N=60;
+  const r=$('.reloj',p), t0=ahora()+0.15;
   musInicio(t0); musPrep(t0,0); musPrep(t0,1);   // (30-sep-2026, Iago) música de fondo, a tempo con el reloj
-  for(let k=1;k<=N;k++){ await hasta(t0+S(k)); musPrep(t0,k+1); const q=N-k; r.textContent=Math.floor(q/60)+':'+String(q%60).padStart(2,'0'); }
+  for(let k=1;k<=N;k++){ await hasta(t0+S(k)); musPrep(t0,k+1); r.textContent=mmss(N-k); }
   await espera(0.5);
 }
 async function empezar(){
