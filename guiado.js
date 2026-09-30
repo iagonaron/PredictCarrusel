@@ -612,7 +612,7 @@ async function ejRitmico(){
   sonidoUI('inicio'); cartel('Dictado rítmico','Cuatro compases');
   await espera(1.6);
   const g=await aviso(D.caja,'Escribe el compás','arriba');
-  D.verCompas(); destello(D.caja,6);
+  D.verCompas(); destello(D.caja,6); brillo();   // (30-sep-2026, Iago) sonido al aparecer el compás (el mismo que la clave y la armadura del melódico)
   await espera(3.5); g.quitar();
   sonidoUI('atencion'); cartel('Piensa en los ritmos típicos de este compás','');
   const nube=nubeRitmos(M.spec);
