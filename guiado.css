@@ -161,6 +161,27 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 #pcg .pcg-rol{font:800 9.5px "Helvetica Neue",Arial,sans-serif;fill:#6b6590}
 #pcg .pcg-rol.clave{fill:#f97316}
 #pcg .pcg-arm .pcg-rol.clave{fill:#7c3aed}   /* (30-sep-2026) en el armónico, la explicación en violeta */
+#pcg .pcg-luz path{fill:#7c3aed;stroke:#7c3aed}   /* (30-sep-2026) acorde 1 iluminado en morado al resolver */
+#pcg .pcg-paso-t{font:800 13.5px "Helvetica Neue",Arial,sans-serif;fill:#16132b}   /* (30-sep-2026) texto de cada escucha del acorde 2 */
+#pcg .pcg-paso-n{font:700 9px "Helvetica Neue",Arial,sans-serif;fill:#8a83ad}
+#pcg .pcg-cadmarco{fill:none;stroke:#ffd23f;stroke-width:3.5}   /* (30-sep-2026) marco de los dos últimos acordes del bonus */
+#pcg .pcg-bajoluz{fill:#ffd23f;stroke:none}   /* (30-sep-2026) «fíjate en el bajo»: el bajo, iluminado en amarillo por detrás */
+/* (30-sep-2026, Iago) «¿A qué te suena?»: letrero oscuro con las cuatro cadencias, sobre los primeros acordes */
+.pcg-bonlet{position:absolute;transform:translateY(-50%);background:#1c1b27;color:#fff;border-radius:22px;padding:24px 34px 26px;
+  box-shadow:0 18px 40px rgba(0,0,0,.35);opacity:0;transition:opacity .45s ease;z-index:8;pointer-events:none}
+.pcg-bonlet.on{opacity:1}
+.pcg-bonlet .tit{color:#ffd23f;font-size:40px;font-weight:900;margin-bottom:12px}
+.pcg-bonlet .fila{display:flex;align-items:baseline;gap:12px;font-size:30px;line-height:1.5;white-space:nowrap}
+.pcg-bonlet .fila b{font-weight:800}
+.pcg-bonlet .fila span{color:rgba(255,255,255,.76);font-weight:600}
+.pcg-bonlet .fila span::before{content:"— "}
+/* (30-sep-2026, Iago) cartel a pantalla completa (acorde 2, antes de decidir la inversión) */
+.pcg-pantallazo{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:0 90px;
+  text-align:center;background:rgba(22,23,31,.96);opacity:0;transition:opacity .45s ease;z-index:10}
+.pcg-pantallazo.on{opacity:1}
+.pcg-pantallazo .big{font-size:56px;font-weight:800;line-height:1.22;color:#fff;text-wrap:balance}
+.pcg-pantallazo .sub{font-size:40px;font-weight:700;color:var(--c)}
+.pcg-pantallazo.cambia .big,.pcg-pantallazo.cambia .sub{animation:pcgCartel .45s ease}
 #pcg .pcg-slot-t{font:800 10.5px "Helvetica Neue",Arial,sans-serif;fill:#8a83ad;transition:fill .25s}
 #pcg .pcg-slot-q{font:900 21px "Helvetica Neue",Arial,sans-serif;fill:#c4b5fd;transition:fill .25s}
 #pcg .pcg-slot.luz .pcg-slot-t,#pcg .pcg-slot.luz .pcg-slot-q{fill:#7c3aed}
@@ -173,7 +194,7 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 /* cuenta atrás (5·4·3·2·1) en grande. (30-sep-2026, Iago) números VERDES, LISOS: sin destello, sin sombra, sin contorno */
 .pcg-cuenta{position:absolute;left:800px;top:493px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0;
   pointer-events:none;z-index:7}
-.pcg-cuenta b{font:900 230px/1 "Helvetica Neue",Arial,sans-serif;color:#22c55e;font-variant-numeric:tabular-nums}
+.pcg-cuenta b{font:900 230px/1 "Helvetica Neue",Arial,sans-serif;color:var(--c);font-variant-numeric:tabular-nums}   /* (30-sep-2026) el color OFICIAL de cada ejercicio (rítmico verde, melódico azul…) */
 .pcg-cuenta.on{opacity:1}
 /* (30-sep-2026, Iago) debajo del número, «✎ Escribe» (rítmico y melódico) */
 .pcg-cuenta .pista{display:none}
@@ -186,7 +207,7 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .pcg-velo.on{opacity:1}
 .pcg-velo .t{font-size:54px;font-weight:800;color:#fff;letter-spacing:.01em}
-.pcg-velo .n{font:900 210px/1 "Helvetica Neue",Arial,sans-serif;color:#22c55e;font-variant-numeric:tabular-nums}   /* (30-sep-2026) verde liso */
+.pcg-velo .n{font:900 210px/1 "Helvetica Neue",Arial,sans-serif;color:var(--c);font-variant-numeric:tabular-nums}   /* (30-sep-2026) liso, en el color oficial del ejercicio */
 
 /* reloj de escribir (anillo) */
 .pcg-reloj{position:relative;width:106px;height:106px;flex:none}
@@ -202,6 +223,16 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-corr.on{opacity:.8}
 .pcg-corr span{font-size:18px;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:.06em;text-transform:uppercase}
 .pcg-corr b{min-width:66px;height:66px;border-radius:50%;border:2px solid rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;color:#fff}
+
+/* (30-sep-2026, Iago) cartel centrado, sin flecha */
+.pcg-centrado{position:absolute;left:800px;transform:translate(-50%,-50%);opacity:0;transition:opacity .35s ease;z-index:8;pointer-events:none}
+.pcg-centrado.on{opacity:1}
+.pcg-centrado .bocadillo{background:#1c1b27;color:#fff;font-size:34px;font-weight:800;padding:14px 30px;border-radius:22px;
+  border:3px solid var(--c);box-shadow:0 14px 34px rgba(0,0,0,.38);white-space:nowrap}
+/* (30-sep-2026, Iago) flechas de la 1.ª y la 10.ª nota del melódico: azules, sin contorno, de abajo arriba, encima del número */
+#pcg .pcg-flecha-n path{fill:none;stroke:var(--c2);stroke-width:4;stroke-linecap:round;stroke-linejoin:round}
+#pcg .pcg-flecha-n.pcg-si{animation:pcgBoteN .9s ease-in-out infinite;transform-box:fill-box}
+@keyframes pcgBoteN{50%{transform:translateY(-4px)}}
 
 /* flecha + bocadillo (el aviso) */
 .pcg-guia{position:absolute;display:flex;align-items:center;gap:4px;opacity:0;transition:opacity .35s ease;z-index:8;pointer-events:none}
@@ -232,14 +263,14 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-mensaje b{font-weight:900}
 
 /* nube de pensamiento del rítmico (ayudita fugaz) */
-.pcg-nube{position:absolute;left:150px;top:196px;width:1300px;height:720px;opacity:0;transform:scale(.92);transform-origin:50% 45%;
+.pcg-nube{position:absolute;left:150px;top:160px;width:1300px;height:720px;opacity:0;transform:scale(.84);transform-origin:50% 45%;   /* (30-sep-2026) algo más pequeña y más arriba: no llega a los mandos */
   transition:opacity .45s ease,transform .6s cubic-bezier(.2,.9,.3,1.15);z-index:9;pointer-events:none}
-.pcg-nube.on{opacity:1;transform:none}
-.pcg-nube .nube-f{position:absolute;inset:0;width:100%;height:100%;fill:#fbfaff;filter:drop-shadow(0 18px 36px rgba(0,0,0,.38))}
+.pcg-nube.on{opacity:1;transform:scale(.9)}
+.pcg-nube .nube-f{position:absolute;inset:0;width:100%;height:100%;fill:#fbfaff;filter:drop-shadow(0 18px 36px rgba(0,0,0,.38));overflow:visible}
 .pcg-nube .nube-in{position:absolute;left:0;right:0;top:70px;height:650px}
 .pcg-nube .celda{position:absolute;width:0;height:0;opacity:0}
-.pcg-nube .celda .celda-svg{position:absolute;left:0;top:0;transform:translate(-50%,-50%);height:150px;width:auto!important}
-.pcg-nube .celda svg{height:150px!important;width:auto!important;display:block;overflow:visible}
+.pcg-nube .celda .celda-svg{position:absolute;left:0;top:0;transform:translate(-50%,-50%);height:132px;width:auto!important}
+.pcg-nube .celda svg{height:132px!important;width:auto!important;display:block;overflow:visible}
 .pcg-nube.va .celda{animation:pcgPiensa 1.7s ease both}
 @keyframes pcgPiensa{0%{opacity:0;transform:translateY(18px) scale(.8) rotate(var(--r))}18%{opacity:.86;transform:rotate(var(--r))}70%{opacity:.86;transform:rotate(var(--r))}100%{opacity:0;transform:translateY(-20px) scale(1.05) rotate(var(--r))}}
 
@@ -252,13 +283,15 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-bon .bon-part{width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .pcg-bon .bon-part .pcg-nota{height:100%}
 .pcg-bon .bon-part svg{width:100%!important;height:100%!important}
-.pcg-bon .bon-ops{display:flex;gap:18px;justify-content:center;max-height:0;overflow:hidden;transition:opacity .6s ease,max-height .7s ease}
-.pcg-bon .bon-ops.pcg-si{max-height:150px;overflow:visible}
-.pcg-bon .op{min-width:250px;padding:12px 22px;border-radius:18px;border:2.5px solid #e2dccb;background:#fff;text-align:center;transition:all .5s}
-.pcg-bon .op b{display:block;font-size:30px;font-weight:900;color:#2a2517}
-.pcg-bon .op span{display:block;margin-top:2px;font-size:22px;font-weight:700;color:#8a7f5c}
+/* (30-sep-2026, Iago) las cuatro opciones EN UNA LÍNEA (nombre y, a la derecha, los grados en amarillo) y con su sitio
+   guardado desde el principio: la partitura ya no encoge cuando aparecen */
+.pcg-bon .bon-ops{display:flex;gap:16px;justify-content:center;flex:none}
+.pcg-bon .op{display:inline-flex;align-items:center;gap:12px;padding:9px 16px 9px 20px;border-radius:16px;border:2.5px solid #e2dccb;background:#fff;transition:all .5s}
+.pcg-bon .op b{font-size:28px;font-weight:900;color:#2a2517;white-space:nowrap}
+.pcg-bon .op span{padding:3px 12px;border-radius:9px;background:#ffd23f;color:#2a2008;font-size:22px;font-weight:800;white-space:nowrap}
 .pcg-bon .op.ok{border-color:#a16207;background:#ffd23f;box-shadow:0 0 0 7px rgba(255,210,63,.35);transform:scale(1.07)}
-.pcg-bon .op.ok b,.pcg-bon .op.ok span{color:#2a2008}
+.pcg-bon .op.ok b{color:#2a2008}
+.pcg-bon .op.ok span{background:#fff}
 .pcg-bon .op.no{opacity:.35}
 #pcg .pcg-cadhl{fill:rgba(255,210,63,.28);stroke:none;opacity:0;transition:opacity .2s}
 #pcg .pcg-cadhl.on{opacity:1}
@@ -320,3 +353,8 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 #pcgBonusIpad span{color:#ffd23f;font-weight:900;text-transform:uppercase;letter-spacing:.08em;margin-right:6px}
 #pcgBonusIpad b{font-weight:900;color:#ffd23f;margin-left:4px}
 html.pc-pantalla #pcgBonusIpad{display:none}
+/* (30-sep-2026, Iago) «Pantalla completa» en la portada: arriba a la derecha, pequeño y discreto */
+.pcg-pcmini{position:absolute;top:26px;right:30px;z-index:6;width:56px;height:50px;padding:0;display:flex;align-items:center;justify-content:center;
+  border-radius:14px;background:rgba(10,8,30,.35);border:1.5px solid rgba(255,255,255,.3);cursor:pointer;opacity:.72;transition:opacity .2s ease,background .2s ease}
+.pcg-pcmini svg{width:26px;height:26px;display:block}
+.pcg-pcmini:hover,.pcg-pcmini:focus-visible{opacity:1;background:rgba(255,255,255,.14)}
