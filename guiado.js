@@ -593,7 +593,7 @@ async function ejRitmico(){
   await escribir(10,'','','Próxima repetición');   // (30-sep-2026, Iago) sin cartel: abajo, junto al tiempo
   await pase('2ª escucha','',t=>tocaRitmo(t,M,D,false),2.0,ESCRIBE);
   await finEjercicio();
-  await correccion(()=>{ const t=ahora()+0.4, tf=tocaRitmo(t,M,D,true); enTiempo(tf,()=>D.todo()); return M.totalQ*M.spq+0.4; });
+  await correccion(()=>{ const t=ahora()+0.4, tf=tocaRitmo(t,M,D,true); enTiempo(tf,()=>D.todo()); return M.totalQ*M.spq+0.4; },20,6);   // (30-sep-2026) 20 s; en 3/4, 6 s al acabar
 }
 
 /* ============================================================================
@@ -923,7 +923,7 @@ async function ejArmonico(){
   // ---------- ACORDE 1 · tipo
   A.activa(1);
   cartel('Acorde 1','Indica qué tipo de acorde vas a escuchar');   // (30-sep-2026, Iago) guía al principio
-  await espera(2.3);
+  await espera(2.0);
   ding(); cartel('Acorde 1','Escucha: primero el acorde y después el arpegio'); await espera(1.2);   // (30-sep-2026) sin «plaqué»
   let t=ahora()+0.1; bloque(t,m1,2.4); await hasta(t+S(3.1));
   t=ahora()+0.05; await hasta(arpegio(t,m1,0.7,1.3)+S(0.5));
@@ -941,7 +941,7 @@ async function ejArmonico(){
   // ---------- ACORDE 2 · tiple, bajo e inversión
   A.activa(2);
   cartel('Acorde 2','Escribe la nota aguda y la grave; después, la inversión');   // (30-sep-2026, Iago) guía al principio
-  await espera(2.3);
+  await espera(2.0);
   // (30-sep-2026, Iago) primero solo «Escríbela», a la derecha de la nota con la flecha hacia la izquierda…
   A.verCentral(); g=await aviso(A.central,'Escríbela','der'); nota(ahora()+0.05,m2[1],0.95,S(2.2));
   cartel('Nota central: '+b.dada,'Escríbela en el pentagrama');
@@ -1080,7 +1080,7 @@ async function ejBonus(){
   B.verTonalidad(true);
   cartel('¿Qué cadencia es?','Bonus: no hay que escribir nada, solo escuchar y pensar');
   await espera(2.0);
-  cartel('Escucha la cadencia',''); B.marco(); await espera(1.2);   // sin campanita; el marco, desde que empieza a sonar
+  cartel('Escucha la cadencia',''); B.marco(); await espera(1.0);   // sin campanita; el marco, desde que empieza a sonar
   await hasta(tocaCadencia(ahora()+0.1,gen,B)+S(0.8));
   // «¿A qué te suena?»: las cuatro, explicadas, unos segundos
   cartel('',''); B.letrero(true); await espera(7); B.letrero(false); await espera(0.5);
@@ -1122,7 +1122,7 @@ function pintaPiano(){ const p=$('#pcgPiano'); if(!p) return;
    Desde «Empezar» hasta los créditos, con el minuto de preparación. Con la semilla del iPad se generan los mismos
    ejercicios que al empezar; cambia de un carrusel a otro lo que dura el ritmo, el dictado del TonCom, el acorde 1 y la
    cadencia; el resto es fijo (DUR_FIJA, medido con el reloj del audio en carruseles de prueba). */
-const DUR_FIJA=550.7, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep)
+const DUR_FIJA=548.9, DUR_CACHE={};   // medido: semillas 6, 424242 y 1 (con los recortes de 30-sep)
 function duracionCarrusel(sem){
   if(sem==null) return null; if(sem in DUR_CACHE) return DUR_CACHE[sem];
   let tot=null;
@@ -1136,7 +1136,7 @@ function duracionCarrusel(sem){
     const Dt=dict.events.reduce((a,e)=>a+e.durSec,0), pt=(cps.comp?1.5:1)*(60/cps.bpm);
     const n1=datosArmonico.a.notes.length;
     const cad=cadenciaDe(sem), spb=60/84, qs=cad.ev.map(e=>e.q), C=qs.reduce((a,b)=>a+b,0)*spb, C2=(qs[qs.length-2]+qs[qs.length-1])*spb;
-    tot=DUR_FIJA+2*(5*pr+R)+Math.max(20,Math.ceil(R+0.4+8))+nube+5*pt+Dt+1.4*(n1-1)+2*C+C2;
+    tot=DUR_FIJA+2*(5*pr+R)+Math.max(20,Math.ceil(R+0.4+6))+nube+5*pt+Dt+1.4*(n1-1)+2*C+C2;
     if(!Number.isFinite(tot)) tot=null;
   }catch(e){ console.warn('[guiado] duración',e); tot=null; }
   DUR_CACHE[sem]=tot; return tot;
@@ -1225,7 +1225,7 @@ async function transicion(i){
   t.innerHTML='<div class="ico">'+espiral('#fff',E.n)+'</div><div class="lin">'+(i<4?'EJERCICIO '+E.n:'BONUS EXTRA')+' · <b>'+E.nombre+'</b></div>'+
     '<div class="pasos">'+EJS.concat([BONUS]).map((e,j)=>'<i class="'+(j<i?'hecho':(j===i?'act':''))+(j===4?' estrella':'')+'"></i>').join('')+'</div>';
   STAGE.appendChild(t);
-  try{ await espera(2.4); t.classList.add('fuera'); await espera(0.4); }   // (30-sep-2026) más corta: el carrusel entero, por debajo de 11:20
+  try{ await espera(2.2); t.classList.add('fuera'); await espera(0.4); }   // (30-sep-2026) más corta: el carrusel entero, por debajo de 11:20
   finally{ setTimeout(()=>bio.remove(),900); }
 }
 function creditos(){
