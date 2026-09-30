@@ -18,12 +18,14 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-fondo{position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease}
 .pcg-fondo.on{opacity:1}
 .f-base{opacity:1;background:linear-gradient(160deg,#1d1545,#0c0926 60%,#070512)}
-/* portada y créditos: remolino multicolor que gira despacio (una sola capa) + anillos quietos encima */
-.f-multi .giro{position:absolute;left:50%;top:50%;width:70vmax;height:70vmax;margin:-35vmax 0 0 -35vmax;border-radius:50%;
-  background:conic-gradient(from 0deg,#ff5fa2,#ff9a3c,#ffd23f,#34d399,#5bd0ff,#7c6cff,#bd92ff,#ff5fa2);
-  transform:scale(2.2);will-change:transform}
+/* portada y créditos: remolino multicolor que gira despacio + anillos quietos encima.
+   (30-sep-2026, tarde) El remolino es un LIENZO pequeño (360 px, pintado una vez por guiado.js) que la tarjeta gráfica
+   agranda y gira: antes era un degradado de más de 3000 px y en el ordenador del aula la espiral iba a tirones.
+   Si aun así el ordenador no llega (lo mide guiado.js), #pcg.ligero deja el remolino quieto. */
+.f-multi .giro{position:absolute;left:50%;top:50%;width:156vmax;height:156vmax;margin:-78vmax 0 0 -78vmax;display:block;will-change:transform}
 .f-multi.on .giro{animation:pcgGiro 90s linear infinite}
-@keyframes pcgGiro{from{transform:scale(2.2) rotate(0deg)}to{transform:scale(2.2) rotate(360deg)}}
+@keyframes pcgGiro{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+#pcg.ligero .f-multi .giro{animation:none!important}
 .f-multi::after{content:"";position:absolute;inset:0;
   background:repeating-radial-gradient(circle at 50% 42%,rgba(10,7,30,0) 0 34px,rgba(10,7,30,.30) 34px 68px),
              radial-gradient(ellipse 72% 72% at 50% 42%,rgba(10,7,30,.34),rgba(10,7,30,.86) 80%)}
@@ -36,19 +38,21 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
    linear-gradient(165deg,#23252f 0%,#16171e 55%,#0d0e12 100%)}
 .f-rit{--rgb:52,211,153}.f-mel{--rgb:91,208,255}.f-ton{--rgb:255,154,60}.f-arm{--rgb:189,146,255}.f-bon{--rgb:255,210,63}
 
-/* ---------- paso de un ejercicio a otro: el «bioma» ---------- */
-.pcg-bioma{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;border-radius:50%;pointer-events:none;
-  background:
-    repeating-conic-gradient(from 0deg,rgba(255,255,255,.09) 0 6deg,rgba(255,255,255,0) 6deg 12deg),
-    radial-gradient(circle,var(--c) 0,rgba(var(--rgb),.85) 16%,rgba(var(--rgb),.5) 34%,rgba(12,12,18,.0) 60%);
+/* ---------- paso de un ejercicio a otro: el «bioma» (30-sep-2026: lienzo pequeño que se agranda, ver guiado.js) ---------- */
+.pcg-bioma{position:absolute;left:50%;top:50%;width:160vmax;height:160vmax;margin:-80vmax 0 0 -80vmax;display:block;pointer-events:none;
   transform:scale(0) rotate(-40deg);opacity:1;will-change:transform,opacity;z-index:1}
 .pcg-bioma.va{animation:pcgBioma 3.3s cubic-bezier(.22,.8,.25,1) forwards}
 @keyframes pcgBioma{0%{transform:scale(0) rotate(-40deg);opacity:1}38%{transform:scale(1) rotate(0deg);opacity:1}72%{opacity:.9}100%{transform:scale(1.25) rotate(12deg);opacity:0}}
+#pcg.ligero .pcg-bioma.va{animation:pcgBiomaL 3.3s ease forwards}
+@keyframes pcgBiomaL{0%{transform:scale(1);opacity:0}30%{transform:scale(1);opacity:1}72%{opacity:.9}100%{transform:scale(1);opacity:0}}
 
 /* ---------- portada y créditos ---------- */
 .pcg-portada{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:pcgEntra .9s ease both}
-.pcg-logo{width:290px;height:290px;margin-bottom:10px;filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}
-.pcg-logo svg{width:100%;height:100%;display:block;animation:pcgGiroLogo 26s linear infinite;will-change:transform}
+/* (30-sep-2026) sin filtro de sombra encima de lo que gira (obligaba a recalcular la sombra en cada fotograma): la sombra es un
+   círculo difuminado QUIETO por detrás */
+.pcg-logo{position:relative;width:290px;height:290px;margin-bottom:10px}
+.pcg-logo::before{content:"";position:absolute;left:6%;top:12%;width:88%;height:88%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.40),rgba(0,0,0,0))}
+.pcg-logo svg{position:relative;width:100%;height:100%;display:block;animation:pcgGiroLogo 26s linear infinite;will-change:transform}
 @keyframes pcgGiroLogo{to{transform:rotate(360deg)}}
 .pcg-titulo{margin:0;display:flex;align-items:baseline;justify-content:center;gap:24px;line-height:1;text-shadow:0 8px 34px rgba(0,0,0,.5)}
 .pcg-titulo .pd{font-size:150px;font-weight:900;letter-spacing:-.03em}
@@ -63,6 +67,11 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
   background:#fff;box-shadow:0 18px 50px rgba(0,0,0,.45),0 0 0 6px rgba(255,255,255,.22);transition:transform .15s,filter .15s}
 .pcg-empezar:hover{transform:scale(1.03)}
 .pcg-empezar:disabled{opacity:.55;cursor:wait;transform:none}
+/* (30-sep-2026, Iago) «Pantalla completa», a la vista en la portada */
+.pcg-pc{margin-top:22px;font:inherit;font-size:24px;font-weight:800;color:#fff;background:rgba(10,8,30,.45);border:1.5px solid rgba(255,255,255,.42);
+  border-radius:999px;padding:12px 30px 12px 22px;cursor:pointer;display:inline-flex;align-items:center;gap:12px}
+.pcg-pc svg{width:26px;height:26px;display:block}
+.pcg-pc:hover{background:rgba(255,255,255,.14)}
 .pcg-empezar .dot{display:inline-block;width:.7em;height:.7em;margin-right:.45em;border-radius:50%;vertical-align:-.04em;
   background:conic-gradient(#ff5fa2,#ff9a3c,#ffd23f,#34d399,#5bd0ff,#bd92ff,#ff5fa2)}
 .pcg-ultimo{margin-top:30px;font-size:23px;color:rgba(245,242,255,.78);font-weight:600;text-shadow:0 2px 10px rgba(0,0,0,.6)}
@@ -70,14 +79,26 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-fin .pcg-kick{font-size:40px;margin-top:22px}
 .pcg-fin .pasos4{display:flex;gap:18px;margin-top:26px}
 .pcg-fin .pasos4 i{width:20px;height:20px;border-radius:50%;background:var(--c);box-shadow:0 0 14px var(--c)}
+.pcg-fin .pasos4{align-items:center}
+.pcg-fin .pasos4 i.estrella{width:36px;height:36px;border-radius:0;background:none;box-shadow:none;margin-left:2px}   /* (30-sep-2026) el bonus */
+.pcg-fin .pasos4 i.estrella svg{width:100%;height:100%;display:block;fill:#ffd23f;filter:drop-shadow(0 0 7px rgba(255,210,63,.85))}
 .pcg-volver{margin-top:40px;font:inherit;font-size:22px;font-weight:800;color:#fff;background:rgba(10,8,30,.45);border:1.5px solid rgba(255,255,255,.35);
   border-radius:999px;padding:14px 30px;cursor:pointer}
+
+/* ---------- (30-sep-2026, Iago) minuto de preparación: «El carrusel empezará en…» ---------- */
+.pcg-prep{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;animation:pcgEntra .7s ease both}
+.pcg-prep::before{content:"";position:absolute;left:-100px;right:-100px;top:150px;height:600px;z-index:-1;
+  background:linear-gradient(180deg,rgba(10,11,18,0),rgba(10,11,18,.66) 22%,rgba(10,11,18,.66) 78%,rgba(10,11,18,0))}
+.pcg-prep .t{font-size:64px;font-weight:800;letter-spacing:.01em}
+.pcg-prep .reloj{font:900 270px/1 "Helvetica Neue",Arial,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;margin:14px 0 26px}
+.pcg-prep .sub{font-size:44px;font-weight:800;color:#ffd23f;animation:pcgParpadeo 1.3s ease-in-out infinite}
+@keyframes pcgParpadeo{0%,52%{opacity:1}66%,88%{opacity:.14}100%{opacity:1}}
 
 /* ---------- cartel de transición ---------- */
 .pcg-trans{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;z-index:2}
 .pcg-trans::before{content:"";position:absolute;left:-100px;right:-100px;top:250px;height:430px;z-index:-1;
   background:linear-gradient(180deg,rgba(10,11,18,0),rgba(10,11,18,.55) 30%,rgba(10,11,18,.55) 70%,rgba(10,11,18,0));animation:pcgEntra .8s .2s ease both}
-.pcg-trans .ico{width:190px;height:190px;animation:pcgIcoIn 1.2s cubic-bezier(.2,.9,.3,1.15) both;filter:drop-shadow(0 10px 30px rgba(0,0,0,.45))}
+.pcg-trans .ico{width:190px;height:190px;animation:pcgIcoIn 1.2s cubic-bezier(.2,.9,.3,1.15) both}
 .pcg-trans .ico svg{width:100%;height:100%;display:block}
 .pcg-trans .lin{font-size:92px;font-weight:300;letter-spacing:.04em;color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.4);animation:pcgLinIn .9s .25s cubic-bezier(.2,.9,.3,1.1) both;white-space:nowrap}
 .pcg-trans .lin b{font-weight:900}
@@ -126,9 +147,11 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 #pcg .pcg-caja-t{font:800 24px "Helvetica Neue",Arial,sans-serif;fill:#16132b}
 #pcg .pcg-hl{fill:rgba(var(--rgb),.22);stroke:none;opacity:0;transition:opacity .25s}
 #pcg .pcg-hl.on{opacity:1}
+/* (30-sep-2026, Iago) VexFlow pone stroke negro de 0,3 en su <svg> y lo heredaban nuestros textos y círculos: salía un
+   contorno negro finísimo en los números, en «bajo», en la «?»… Fuera. */
+#pcg svg text[class*="pcg-"],#pcg .pcg-num-hl{stroke:none}
 #pcg .pcg-num{font:700 17px "Helvetica Neue",Arial,sans-serif;fill:#8089a8;transition:fill .2s}
 #pcg .pcg-num.act{fill:#fff}
-#pcg .pcg-num-aro{fill:none;stroke:#8089a8;stroke-width:1.4}
 #pcg .pcg-num-hl{fill:var(--c2);opacity:0;transition:opacity .2s}
 #pcg .pcg-num-hl.on{opacity:1}
 #pcg .pcg-int-l{stroke-width:4.5;stroke-linecap:round;fill:none}
@@ -137,24 +160,33 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 #pcg .pcg-q{font:900 34px "Helvetica Neue",Arial,sans-serif;fill:var(--c2)}
 #pcg .pcg-rol{font:800 9.5px "Helvetica Neue",Arial,sans-serif;fill:#6b6590}
 #pcg .pcg-rol.clave{fill:#f97316}
+#pcg .pcg-arm .pcg-rol.clave{fill:#7c3aed}   /* (30-sep-2026) en el armónico, la explicación en violeta */
+#pcg .pcg-slot-t{font:800 10.5px "Helvetica Neue",Arial,sans-serif;fill:#8a83ad;transition:fill .25s}
+#pcg .pcg-slot-q{font:900 21px "Helvetica Neue",Arial,sans-serif;fill:#c4b5fd;transition:fill .25s}
+#pcg .pcg-slot.luz .pcg-slot-t,#pcg .pcg-slot.luz .pcg-slot-q{fill:#7c3aed}
 #pcg .pcg-anillo{fill:none;stroke:#f97316;stroke-width:2}
 #pcg .pcg-flechita{fill:none;stroke:#f97316;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 #pcg .pcg-flechita.gruesa{stroke-width:3}
-#pcg .pcg-paren{fill:none;stroke:var(--c2);stroke-width:2.2;stroke-linecap:round}
+#pcg .pcg-paren{fill:none;stroke:#a9a6b9;stroke-width:2.2;stroke-linecap:round}   /* (30-sep-2026) gris */
+#pcg .pcg-arm .pcg-anillo,#pcg .pcg-arm .pcg-flechita{stroke:#7c3aed}
 
-/* cuenta atrás (5·4·3·2·1) en grande */
-.pcg-cuenta{position:absolute;left:800px;top:493px;transform:translate(-50%,-50%) scale(.7);font:900 230px/1 "Helvetica Neue",Arial,sans-serif;color:#fff;opacity:0;
-  text-shadow:0 0 34px rgba(var(--rgb),.85),0 8px 26px rgba(0,0,0,.4);pointer-events:none;z-index:7}
-.pcg-cuenta.on{animation:pcgCuenta .6s cubic-bezier(.2,1.2,.3,1) forwards}
-@keyframes pcgCuenta{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}70%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-50%) scale(1.05)}}
+/* cuenta atrás (5·4·3·2·1) en grande. (30-sep-2026, Iago) números VERDES, LISOS: sin destello, sin sombra, sin contorno */
+.pcg-cuenta{position:absolute;left:800px;top:493px;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;opacity:0;
+  pointer-events:none;z-index:7}
+.pcg-cuenta b{font:900 230px/1 "Helvetica Neue",Arial,sans-serif;color:#22c55e;font-variant-numeric:tabular-nums}
+.pcg-cuenta.on{opacity:1}
+/* (30-sep-2026, Iago) debajo del número, «✎ Escribe» (rítmico y melódico) */
+.pcg-cuenta .pista{display:none}
+.pcg-cuenta.con-pista .pista{display:inline-flex;align-items:center;gap:12px;padding:10px 30px 10px 20px;border-radius:999px;background:#1c1b27;color:#fff;
+  font:800 34px "Helvetica Neue",Arial,sans-serif;box-shadow:0 12px 30px rgba(0,0,0,.35)}
+.pcg-cuenta .pista i{display:block;width:40px;height:40px}
+.pcg-cuenta .pista svg{width:100%;height:100%;display:block}
 /* «Solución en 5…»: el número se queda hasta el siguiente */
 .pcg-velo{position:absolute;left:80px;right:80px;top:258px;height:470px;border-radius:30px;background:rgba(22,23,31,.96);opacity:0;transition:opacity .4s;z-index:6;
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
 .pcg-velo.on{opacity:1}
 .pcg-velo .t{font-size:54px;font-weight:800;color:#fff;letter-spacing:.01em}
-.pcg-velo .n{font:900 210px/1 "Helvetica Neue",Arial,sans-serif;color:#fff;text-shadow:0 0 34px rgba(var(--rgb),.8)}
-.pcg-velo .n.pop{animation:pcgPop .45s cubic-bezier(.2,1.3,.3,1)}
-@keyframes pcgPop{0%{transform:scale(.6);opacity:.2}100%{transform:none;opacity:1}}
+.pcg-velo .n{font:900 210px/1 "Helvetica Neue",Arial,sans-serif;color:#22c55e;font-variant-numeric:tabular-nums}   /* (30-sep-2026) verde liso */
 
 /* reloj de escribir (anillo) */
 .pcg-reloj{position:relative;width:106px;height:106px;flex:none}
@@ -235,7 +267,11 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 
 /* TonCom: tres casillas */
 .pcg-ton{display:flex;gap:38px;width:100%;justify-content:center;align-items:stretch}
-.pcg-ton .tc{flex:1;max-width:380px;border:2px solid #d9d4f0;border-radius:22px;overflow:hidden;background:#fff;display:flex;flex-direction:column}
+.pcg-ton .tc{flex:1;max-width:380px;border:2px solid #d9d4f0;border-radius:22px;overflow:hidden;background:#fff;display:flex;flex-direction:column;
+  transition:opacity .5s ease,transform .5s ease,box-shadow .5s ease,border-color .5s ease}
+/* (30-sep-2026, Iago) lo que toca escribir, destacado; lo demás, oscurecido */
+.pcg-ton .tc.foco{border-color:var(--c2);box-shadow:0 0 0 7px rgba(var(--rgb),.35);transform:scale(1.04)}
+.pcg-ton .tc.apagada{opacity:.26}
 .pcg-ton .lab{font-size:22px;letter-spacing:.14em;text-transform:uppercase;color:#fff;font-weight:800;background:#2a2838;padding:14px;text-align:center;border-bottom:5px solid var(--c)}
 .pcg-ton .val{position:relative;height:250px;display:flex;align-items:center;justify-content:center}
 .pcg-ton .q{position:absolute;font-size:120px;font-weight:900;color:#e4e0f2;transition:opacity .4s}
@@ -245,7 +281,7 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .pcg-ton .sol .cp{display:inline-flex;flex-direction:column;line-height:.9;font-size:96px}
 
 /* Armónico: dos acordes, como en la ficha */
-.pcg-arm{display:grid;grid-template-columns:440px 1fr;gap:28px;width:100%;height:100%}
+.pcg-arm{display:grid;grid-template-columns:560px 1fr;gap:28px;width:100%;height:100%}   /* (30-sep-2026) acorde 1 más ancho */
 .arm-p{position:relative;border:2px solid #e4e0f5;border-radius:24px;padding:16px 20px 18px;display:flex;flex-direction:column;align-items:center;gap:8px;
   transition:opacity .6s ease;background:#fff}
 .arm-p.apagado{opacity:.3}
@@ -253,29 +289,28 @@ html.pcg-on .wrap{position:fixed!important;left:-30000px!important;top:0!importa
 .arm-p .penta{position:relative;width:100%;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .arm-p .penta .pcg-nota{height:100%}
 .arm-p .penta svg{width:100%!important;height:100%!important;max-height:100%}
-.arm-ops{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.arm-ops{display:flex;gap:12px;flex-wrap:nowrap;justify-content:center}   /* (30-sep-2026) en una línea */
+/* (30-sep-2026, Iago) mientras piensan la solución, las opciones parpadean */
+.arm-ops.parpadea>span{animation:pcgParpadeoOp 1.1s ease-in-out infinite}
+@keyframes pcgParpadeoOp{0%,100%{border-color:#d9d4f0;background:#fff}50%{border-color:var(--c2);background:rgba(var(--rgb),.24)}}
 .arm-ops>span{font-size:27px;font-weight:900;color:#4d4670;border:2.5px solid #d9d4f0;background:#fff;border-radius:16px;padding:7px 18px;transition:all .45s;
   display:inline-flex;align-items:center;gap:6px}
 .arm-ops>span .cifras{display:inline-flex;flex-direction:column;font-size:15px;line-height:1.02}
 .arm-ops>span.ok{border-color:var(--c2);color:#fff;background:var(--c2);box-shadow:0 0 0 6px rgba(var(--rgb),.28);transform:scale(1.08)}
-.arm-slots{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:10px}
-.arm-slots div{display:flex;align-items:center;gap:10px;font-size:21px;font-weight:800;color:#8a83ad;padding:7px 16px;border-radius:14px;border:2px solid #e4e0f5;background:#fff;transition:all .25s}
-.arm-slots div i{width:14px;height:14px;border-radius:50%;background:#d9d4f0;transition:background .2s}
-.arm-slots div b{color:#16132b;font-weight:900}
-.arm-slots div.dada b{color:var(--c2)}
-.arm-slots div.luz{border-color:var(--c2);color:#16132b;box-shadow:0 0 0 4px rgba(var(--rgb),.22)}
-.arm-slots div.luz i{background:var(--c2)}
 .arm-nombres{position:absolute;left:0;right:0;bottom:-2px;text-align:center;font-size:22px;font-weight:800;color:#4d4670}
 
 /* pausa y mandos (abajo a la IZQUIERDA: la derecha es del número de la corrección) */
 #pcg.pausa *,#pcg.pausa *::before,#pcg.pausa *::after{animation-play-state:paused!important}
 .pcg-pausa-tag{position:absolute;left:50%;top:20px;transform:translateX(-50%);padding:10px 28px;border-radius:999px;background:rgba(0,0,0,.66);font-size:24px;font-weight:800;display:none;z-index:40;letter-spacing:.04em}
 #pcg.pausa .pcg-pausa-tag{display:block}
-.pcg-ctrl{position:absolute;left:16px;bottom:14px;display:flex;gap:10px;opacity:0;transition:opacity .35s;z-index:30}
-#pcg.raton .pcg-ctrl{opacity:.92}
-#pcg.en-portada .pcg-ctrl .solo-ej{display:none}
-.pcg-ctrl button{width:52px;height:52px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(10,8,30,.62);color:#fff;font-size:20px;line-height:1;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+/* (30-sep-2026, Iago) SIEMPRE a la vista (en la pantalla táctil del aula no hay ratón que los haga salir): «Pausa» y
+   «Pantalla completa» con su nombre; repetir, siguiente y portada, solo con icono */
+.pcg-ctrl{position:absolute;left:16px;bottom:14px;display:flex;gap:10px;opacity:.72;transition:opacity .35s;z-index:30}
+#pcg.raton .pcg-ctrl,.pcg-ctrl:hover{opacity:1}
+#pcg.en-portada .pcg-ctrl{display:none}
+.pcg-ctrl button{min-width:52px;height:52px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:rgba(10,8,30,.62);color:#fff;font-size:20px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;touch-action:manipulation}
+.pcg-ctrl button.con-txt{padding:0 20px 0 16px;gap:10px;font:800 18px "Helvetica Neue",Arial,sans-serif;letter-spacing:.01em;white-space:nowrap}
 .pcg-ctrl button:hover{background:rgba(255,255,255,.2)}
 .pcg-ctrl button svg{width:22px;height:22px;display:block}
 
