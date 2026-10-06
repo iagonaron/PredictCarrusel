@@ -916,10 +916,16 @@ function dibujaArmonico(host,a,b){
   const n2=b.notes, mid=n2[1];
   const rl=(n2.find(n=>n.member===0)||n2[0]).letter, iv=ARM_QUAL[b.quality].iv;
   const raiz=(n2.find(n=>n.member===0)||n2[0]).midi;
-  let mejor=null;
-  [raiz-24,raiz-12,raiz,raiz+12].forEach(r=>{ const top=r+iv[2]; if(r<60||top>81) return; const c=(r+top)/2, c0=(n2[0].midi+n2[2].midi)/2;
-    if(!mejor||Math.abs(c-c0)<Math.abs(mejor.c-c0)) mejor={r,c}; });
-  const r0=mejor?mejor.r:raiz;
+  // (6-oct-2026, Iago) el acorde ordenado se escribe a la altura en la que la nota del bajo NO cambia de sitio: así, en la
+  // corrección, el bajo se desliza en horizontal (paralelo a las líneas) hasta su nota en el acorde ordenado. Antes se
+  // elegía la octava más cercana al acorde del ejercicio, y en la 2.ª inversión esa nota quedaba una octava más arriba.
+  let r0=n2[0].midi-iv[b.inv];
+  if(!(r0>=52&&r0+iv[2]<=84)){   // por si acaso (no debería pasar): como antes, la octava más cercana
+    let mejor=null;
+    [raiz-24,raiz-12,raiz,raiz+12].forEach(r=>{ const top=r+iv[2]; if(r<60||top>81) return; const c=(r+top)/2, c0=(n2[0].midi+n2[2].midi)/2;
+      if(!mejor||Math.abs(c-c0)<Math.abs(mejor.c-c0)) mejor={r,c}; });
+    r0=mejor?mejor.r:raiz;
+  }
   const ord=[0,1,2].map(k=>armSpell(rl,k,r0+iv[k]));
   const Asol=acordeEn(P2.ctx,st2,[mid],84,'pcga2mid',0,morado);   // (30-sep-2026) un poco más a la derecha: sitio para las etiquetas
   const Afull=acordeEn(P2.ctx,st2,n2,84,'pcga2full',1,morado);
@@ -933,15 +939,26 @@ function dibujaArmonico(host,a,b){
   // paréntesis a la derecha, donde el alumno ordena por terceras
   const yT=st2.getYForLine(0)-22, yB=st2.getYForLine(4)+22, xL=Aord.x1-38, xR=Aord.x2+50;
   const par=sv('g',{class:'pcg-oc'},svg2);
-  sv('path',{class:'pcg-paren',d:'M'+xL+' '+yT+' Q'+(xL-18)+' '+((yT+yB)/2)+' '+xL+' '+yB},par);
-  sv('path',{class:'pcg-paren',d:'M'+xR+' '+yT+' Q'+(xR+18)+' '+((yT+yB)/2)+' '+xR+' '+yB},par);
+  const parI=sv('path',{class:'pcg-paren',d:'M'+xL+' '+yT+' Q'+(xL-18)+' '+((yT+yB)/2)+' '+xL+' '+yB},par);
+  const parD=sv('path',{class:'pcg-paren',d:'M'+xR+' '+yT+' Q'+(xR+18)+' '+((yT+yB)/2)+' '+xR+' '+yB},par);
+  // (6-oct-2026) con el acorde ordenado a la altura del bajo, a veces baja de la primera línea adicional: el paréntesis
+  // se alarga AL ENSEÑARLO (no antes: no debe dar pistas mientras ordenan)
+  const yOrdB=Math.max.apply(null,Aord.ys)+15, yOrdT=Math.min.apply(null,Aord.ys)-15;
+  const ajustaParentesis=()=>{ const t=Math.min(yT,yOrdT), bb=Math.max(yB,yOrdB); if(t===yT&&bb===yB) return;
+    parI.setAttribute('d','M'+xL+' '+t+' Q'+(xL-18)+' '+((t+bb)/2)+' '+xL+' '+bb);
+    parD.setAttribute('d','M'+xR+' '+t+' Q'+(xR+18)+' '+((t+bb)/2)+' '+xR+' '+bb); };
   // explicación de la inversión (30-sep-2026, Iago: aprendizaje guiado, por partes). A: el papel de cada nota del acorde
   // ordenado y la que hace de bajo; B: el bajo del acorde del ejercicio. Entre las dos, la nota «viaja» (ver viaja()).
-  const explA=sv('g',{class:'pcg-oc'},svg2), explB=sv('g',{class:'pcg-oc'},svg2);
-  const ROL=['fund.','3ª','5ª'];
-  ord.forEach((n,k)=>{ const t=sv('text',{class:'pcg-rol'+(k===b.inv?' clave':''),x:Aord.x2+17,y:Aord.ys[k]+3.5},explA); t.textContent=ROL[k]; });
+  // (6-oct-2026, Iago) «que la única nota señalada al final sea la del bajo»: los papeles (fund. · 3ª · 5ª) salen sin
+  // destacar ninguno; el bajo del acorde del ejercicio se desliza hasta su nota en el acorde ordenado y, al llegar (C),
+  // se enciende su papel y debajo sale «es la tercera»
+  const explA=sv('g',{class:'pcg-oc'},svg2), explB=sv('g',{class:'pcg-oc'},svg2), explC=sv('g',{class:'pcg-oc'},svg2);
+  const ROL=['fund.','3ª','5ª'], ROLES=[];
+  ord.forEach((n,k)=>{ const t=sv('text',{class:'pcg-rol',x:Aord.x2+17,y:Aord.ys[k]+3.5},explA); t.textContent=ROL[k]; ROLES.push(t); });
   const yb=Afull.ys[0], yo=Aord.ys[b.inv];
-  sv('circle',{class:'pcg-anillo',cx:Aord.cx,cy:yo,r:9},explA);
+  sv('circle',{class:'pcg-anillo',cx:Aord.cx,cy:yo,r:9},explC);
+  { const t=sv('text',{class:'pcg-rol clave',x:Aord.cx,y:Math.max.apply(null,Aord.ys)+22,'text-anchor':'middle'},explC);
+    t.textContent='es '+['la fundamental','la tercera','la quinta'][b.inv]; }
   sv('circle',{class:'pcg-anillo',cx:Afull.cx,cy:yb,r:9},explB);
   const tb=sv('text',{class:'pcg-rol clave',x:Afull.cx,y:Math.min(yb+22,146),'text-anchor':'middle'},explB); tb.textContent='bajo';
   // (30-sep-2026, Iago) «en lugar de poner nota, bajo e interrogación»: dos rectángulos morados traslúcidos, justo encima y
@@ -997,15 +1014,26 @@ function dibujaArmonico(host,a,b){
     verCentral(){ Asol.g.classList.add('pcg-si'); },
     verOriginal(){ Afull.g.classList.add('pcg-si'); Asol.g.classList.remove('pcg-si'); },
     verParentesis(){ par.classList.add('pcg-si'); },
-    verOrdenado(){ Aord.g.classList.add('pcg-si'); },
+    verOrdenado(){ ajustaParentesis(); Aord.g.classList.add('pcg-si'); },
     explica(){ explA.classList.add('pcg-si'); explB.classList.add('pcg-si'); },
     explicaRoles(){ explA.classList.add('pcg-si'); },
-    explicaBajo(){ explB.classList.add('pcg-si'); },
-    // la nota del acorde ordenado que hace de bajo se duplica y baja despacio hasta el bajo del acorde del ejercicio
-    viaja(seg){ const hs=[...Aord.g.querySelectorAll('.vf-notehead')].sort((p,q)=>q.getBBox().y-p.getBBox().y), h=hs[b.inv]; if(!h) return;
-      const cl=h.cloneNode(true); cl.removeAttribute('id'); cl.classList.add('pcg-luz','pcg-viaja'); svg2.appendChild(cl);
+    // (6-oct-2026, Iago) el bajo, en morado (aro y «bajo»); la nota dada deja de estar marcada: solo se señala el bajo
+    explicaBajo(){ explB.classList.add('pcg-si');
+      const hs=[...Afull.g.querySelectorAll('.vf-notehead')].sort((p,q)=>q.getBBox().y-p.getBBox().y);
+      hs.forEach((h,i)=>{ h.classList.toggle('pcg-luz',i===0); h.classList.toggle('pcg-apagada',i!==0); }); },
+    // (6-oct-2026, Iago) la nota del BAJO del acorde del ejercicio se duplica y se desliza hacia la derecha, paralela a las
+    // líneas, hasta coincidir con su nota en el acorde ordenado; deja un hilo fino para que se vea que no cambia de altura.
+    // (Antes era al revés: la nota del acorde ordenado bajaba hasta el bajo.)
+    viaja(seg){ const hs=[...Afull.g.querySelectorAll('.vf-notehead')].sort((p,q)=>q.getBBox().y-p.getBBox().y), h=hs[0]; if(!h) return;
+      let xo=Aord.x1; try{ xo=Math.min(xo,Aord.g.getBBox().x); }catch(e){}   // si el acorde ordenado lleva alteraciones, el hilo acaba antes de ellas
+      const dx=Aord.cx-Afull.cx, dy=yo-yb, x1=Afull.x2+3, x2=xo-3, L=Math.hypot(x2-x1,dy);
+      const hilo=sv('line',{class:'pcg-hilo',x1:x1,y1:yb,x2:x2,y2:yo},svg2);
+      hilo.style.strokeDasharray=L; hilo.style.strokeDashoffset=L; hilo.style.transition='stroke-dashoffset '+seg+'s cubic-bezier(.45,0,.25,1)';
+      const cl=h.cloneNode(true); cl.removeAttribute('id'); cl.classList.remove('pcg-apagada'); cl.classList.add('pcg-luz','pcg-viaja'); svg2.appendChild(cl);
       cl.style.transition='transform '+seg+'s cubic-bezier(.45,0,.25,1)';
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ cl.style.transform='translate('+(Afull.cx-Aord.cx)+'px,'+(yb-yo)+'px)'; })); },
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ cl.style.transform='translate('+dx+'px,'+dy+'px)'; hilo.style.strokeDashoffset='0'; })); },
+    // el bajo ha llegado a su nota del acorde ordenado: aro, su papel destacado y «es la …» debajo
+    llega(){ if(ROLES[b.inv]) ROLES[b.inv].classList.add('clave'); explC.classList.add('pcg-si'); },
     ok2(){ p2.querySelector('[data-i="'+b.inv+'"]').classList.add('ok'); $('.arm-ops',p2).classList.add('resuelto'); },
     slots(on){ slots.classList.toggle('pcg-si',!!on); },
     luz(idx){ [0,1,2].forEach(k=>fila[k].classList.toggle('luz',idx.indexOf(k)>=0)); slots.classList.toggle('foco',idx.length>0); },   // (30-sep-2026) lo que no suena, casi transparente
@@ -1106,14 +1134,16 @@ async function ejArmonico(){
     A.verOriginal(); bloque(t0+0.05,m2,2.0);
     enTiempo(t0+S(2.3),()=>{ A.explicaBajo(); cartel('Esta es la nota del bajo',b.bajo); });
     nota(t0+S(2.35),m2[0],0.85,S(1.4));
-    enTiempo(t0+S(4.6),()=>{ A.verOrdenado(); cartel('El acorde ordenado','Por terceras: fundamental, tercera y quinta'); });
+    // (6-oct-2026, Iago) «que se resalte la nota del bajo del acorde del ejercicio y que se desplace lateralmente, paralelo a
+    // las líneas, hasta coincidir con la posición de esa nota en el acorde ordenado, y ahí un cartelito que aclare: como la
+    // que está en el bajo es la fundamental / la tercera / la quinta del acorde ordenado, el estado de este acorde es…»
+    enTiempo(t0+S(4.6),()=>{ A.verOrdenado(); A.explicaRoles(); cartel('El acorde ordenado','Por terceras: fundamental, tercera y quinta'); });
     arpegio(t0+S(4.65),A.ord.map(n=>n.midi),0.5,1.0);
-    enTiempo(t0+S(6.9),()=>{ A.explicaRoles(); cartel('En el acorde ordenado, '+b.bajo+' es '+ROLC[b.inv],''); });
-    enTiempo(t0+S(8.3),()=>{ A.viaja(S(2.5)); });
-    nota(t0+S(10.85),m2[0],0.85,S(1.2));
-    enTiempo(t0+S(10.9),()=>{ cartel('El bajo es '+ROLN[b.inv]+' del acorde','Tiple: '+b.tiple+' · Bajo: '+b.bajo); });
+    enTiempo(t0+S(7.3),()=>{ cartel('¿Qué nota del acorde ordenado es el bajo?',''); A.viaja(S(2.9)); });
+    nota(t0+S(10.25),m2[0],0.85,S(1.2));
+    enTiempo(t0+S(10.3),()=>{ A.llega(); cartel('El bajo es '+ROLN[b.inv]+' del acorde ordenado','Tiple: '+b.tiple+' · Bajo: '+b.bajo); });
     enTiempo(t0+S(13.2),()=>{ cartel('Por lo tanto, el acorde está en…',''); });
-    enTiempo(t0+S(15.4),()=>{ A.ok2(); cartel(INV[b.inv],'El bajo ('+b.bajo+') es '+ROLN[b.inv]+' del acorde'); bloque(ahora()+0.05,m2,1.8); });
+    enTiempo(t0+S(15.4),()=>{ A.ok2(); cartel(INV[b.inv],'Como el bajo ('+b.bajo+') es '+ROLN[b.inv]+' del acorde ordenado'); bloque(ahora()+0.05,m2,1.8); });
     return 16.2; },20,3.8);
 }
 

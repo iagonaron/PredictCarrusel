@@ -407,3 +407,11 @@ html.pc-pantalla #pcgBonusIpad{display:none}
 @keyframes pcgFlechaArriba{50%{transform:translateY(-2.5px)}}
 /* en la solución, solo la opción buena */
 .arm-ops.resuelto>span:not(.ok){opacity:.12}
+
+
+/* (6-oct-2026, Iago) armónico · acorde 2 · corrección: el bajo se desliza, paralelo a las líneas, hasta su nota en el
+   acorde ordenado. El hilo que deja, la nota dada que deja de estar marcada y el papel que se enciende al llegar */
+#pcg .pcg-hilo{stroke:#7c3aed;stroke-width:1.7;stroke-linecap:round;opacity:.5;fill:none}
+#pcg .pcg-apagada path{fill:#000;stroke:#000}
+#pcg .vf-notehead path{transition:fill .5s ease,stroke .5s ease}
+#pcg .pcg-rol{transition:fill .4s ease}
