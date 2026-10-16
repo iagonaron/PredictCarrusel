@@ -1282,10 +1282,31 @@ function leerSemilla(){
   if(SEM_FORZADA!=null) return Promise.resolve({semilla:SEM_FORZADA,en:new Date().toISOString()});
   return fetch(PC_SB+'/rest/v1/app_config?select=value&key=eq.'+PC_CLAVE,{cache:'no-store',headers:{apikey:PC_SB_KEY,Authorization:'Bearer '+PC_SB_KEY}})
     .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
-    .then(f=>{ const v=(f&&f[0]&&f[0].value)||null, n=v?Number(v.semilla):NaN; return Number.isFinite(n)?{semilla:n,en:v.en||null}:null; });
+    .then(f=>{ const v=(f&&f[0]&&f[0].value)||null, n=v?Number(v.semilla):NaN; return Number.isFinite(n)?{semilla:n,en:v.en||null}:null; })
+    .then(semillaPantalla, ()=>semillaPantalla(null));   /* (16-oct-2026) el del iPad, si es de la última media hora; si no, uno nuevo */
+}
+/* (16-oct-2026, Iago) «si abro el Predict Carrusel en la pantalla y no he dado previamente al iPad, quiero que se me
+   genere un carrusel nuevo… si en la última media hora he generado con mi iPad… que me abra ese. Pero si no toqué la
+   tablet… no quiero que me abra el de la última semana». El del iPad vale si es de hace 30 min o menos; si no, esta
+   pantalla genera uno nuevo y lo guarda en ESTE ordenador 2 horas (si se vuelve a abrir en la misma clase, sale el
+   mismo; si luego se genera otro en el iPad, manda el del iPad). Sin red: también uno nuevo. ?semilla=N, como antes. */
+const FRESCO_IPAD=30*60e3, FRESCO_PANTALLA=2*3600e3, LS_PANT='pcg_pantalla_semilla';
+function semillaPantalla(v){
+  const ahora=Date.now(), tI=(v&&v.en)?Date.parse(v.en):NaN;
+  let loc=null; try{ loc=JSON.parse(localStorage.getItem(LS_PANT)||'null'); }catch(e){}
+  const tL=(loc&&loc.en)?Date.parse(loc.en):NaN;
+  const iFresco=!!(v && isFinite(tI) && ahora-tI<=FRESCO_IPAD);
+  const lFresco=!!(loc && Number.isFinite(Number(loc.semilla)) && isFinite(tL) && ahora-tL<=FRESCO_PANTALLA);
+  if(iFresco && !(lFresco && tL>tI)) return v;
+  if(lFresco) return {semilla:Number(loc.semilla), en:loc.en, nuevo:true, ipad:v?v.en:null};
+  let s; try{ s=(typeof semillaNueva==='function')?semillaNueva():Math.floor(Math.random()*1e6); }catch(e){ s=Math.floor(Math.random()*1e6); }
+  const n={semilla:s, en:new Date().toISOString()};
+  try{ localStorage.setItem(LS_PANT, JSON.stringify(n)); }catch(e){}
+  return {semilla:s, en:n.en, nuevo:true, recien:true, ipad:v?v.en:null};
 }
 function pintaUltimo(){ const u=$('#pcgUltimo'), b=$('#pcgEmpezar'); if(!u) return;
-  if(ULTIMO){ u.innerHTML='Último generado: '+fechaBonita(ULTIMO.en)+'<small id="pcgPiano"></small>'; if(b) b.disabled=false; }
+  if(ULTIMO){ u.innerHTML=(ULTIMO.nuevo ? ('Carrusel nuevo, generado '+(ULTIMO.recien?'ahora':fechaBonita(ULTIMO.en))+(ULTIMO.ipad?' · el último del iPad era de '+fechaBonita(ULTIMO.ipad):''))
+                                      : ('Del iPad: '+fechaBonita(ULTIMO.en)))+'<small id="pcgPiano"></small>'; if(b) b.disabled=false; }   /* (16-oct-2026) */
   else if(ULTIMO_ERR){ u.innerHTML='No he podido leer el carrusel del iPad. Comprueba la conexión.<small id="pcgPiano"></small>'; }
   else u.innerHTML='Todavía no hay ningún carrusel generado en el iPad.<small id="pcgPiano"></small>';
   pintaPiano(); }
@@ -1316,7 +1337,10 @@ function duracionCarrusel(sem){
 }
 function durTexto(){ const d=ULTIMO?duracionCarrusel(ULTIMO.semilla):null; if(!d) return '';
   const t=Math.round(d/10)*10, m=Math.floor(t/60), s=t%60; return '  ·  Duración total: '+m+' min'+(s?' '+s+' s':''); }
-function refrescar(){ leerSemilla().then(v=>{ ULTIMO=v; ULTIMO_ERR=false; pintaUltimo(); }).catch(()=>{ if(!ULTIMO){ ULTIMO_ERR=true; pintaUltimo(); } }); }
+function refrescar(){ leerSemilla().then(v=>{ ULTIMO=v; ULTIMO_ERR=false;
+    /* (16-oct-2026) «la propia portada… puedes poner generando un carrusel» */
+    if(v && v.recien){ const u=$('#pcgUltimo'), b=$('#pcgEmpezar'); if(u) u.innerHTML='Generando un carrusel nuevo…<small id="pcgPiano"></small>'; if(b) b.disabled=true; pintaPiano(); setTimeout(pintaUltimo,1400); }
+    else pintaUltimo(); }).catch(()=>{ if(!ULTIMO){ ULTIMO_ERR=true; pintaUltimo(); } }); }
 function portada(){
   MODO='portada'; ESC=null; ROOT.classList.add('en-portada'); ROOT.classList.remove('quieto');
   fondo('multi'); STAGE.innerHTML='';
