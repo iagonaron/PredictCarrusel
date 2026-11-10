@@ -1282,7 +1282,7 @@ function leerSemilla(){
   if(SEM_FORZADA!=null) return Promise.resolve({semilla:SEM_FORZADA,en:new Date().toISOString()});
   return fetch(PC_SB+'/rest/v1/app_config?select=value&key=eq.'+PC_CLAVE,{cache:'no-store',headers:{apikey:PC_SB_KEY,Authorization:'Bearer '+PC_SB_KEY}})
     .then(r=>{ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
-    .then(f=>{ const v=(f&&f[0]&&f[0].value)||null, n=v?Number(v.semilla):NaN; return Number.isFinite(n)?{semilla:n,en:v.en||null}:null; })
+    .then(f=>{ const v=(f&&f[0]&&f[0].value)||null, n=v?Number(v.semilla):NaN; return Number.isFinite(n)?{semilla:n,en:v.en||null,leccion:(v.leccion!=null?v.leccion:null)}:null; })
     .then(semillaPantalla, ()=>semillaPantalla(null));   /* (16-oct-2026) el del iPad, si es de la última media hora; si no, uno nuevo */
 }
 /* (16-oct-2026, Iago) «si abro el Predict Carrusel en la pantalla y no he dado previamente al iPad, quiero que se me
@@ -1337,7 +1337,7 @@ function duracionCarrusel(sem){
 }
 function durTexto(){ const d=ULTIMO?duracionCarrusel(ULTIMO.semilla):null; if(!d) return '';
   const t=Math.round(d/10)*10, m=Math.floor(t/60), s=t%60; return '  ·  Duración total: '+m+' min'+(s?' '+s+' s':''); }
-function refrescar(){ leerSemilla().then(v=>{ ULTIMO=v; ULTIMO_ERR=false;
+function refrescar(){ leerSemilla().then(v=>{ ULTIMO=v; ULTIMO_ERR=false; if(v && v.leccion!=null) IV_LECCION=v.leccion;
     /* (16-oct-2026) «la propia portada… puedes poner generando un carrusel» */
     if(v && v.recien){ const u=$('#pcgUltimo'), b=$('#pcgEmpezar'); if(u) u.innerHTML='Generando un carrusel nuevo…<small id="pcgPiano"></small>'; if(b) b.disabled=true; pintaPiano(); setTimeout(pintaUltimo,1400); }
     else pintaUltimo(); }).catch(()=>{ if(!ULTIMO){ ULTIMO_ERR=true; pintaUltimo(); } }); }
@@ -1488,6 +1488,7 @@ async function empezar(){
   let v=null; try{ v=await leerSemilla(); }catch(e){ v=ULTIMO; }
   if(!v){ ULTIMO_ERR=!ULTIMO; b.disabled=false; pintaUltimo(); return; }
   ULTIMO=v; SEMILLA=v.semilla;
+  if(v.leccion!=null) IV_LECCION=v.leccion;   /* (10-nov-2026) la lección de Intervalia de ese carrusel (la del iPad) */
   try{ renderConSemilla(SEMILLA); }catch(e){ console.error('[guiado] renderConSemilla',e); }
   MODO='carrusel'; ROOT.classList.remove('en-portada');
   carrusel(PREP?-1:EJ0);

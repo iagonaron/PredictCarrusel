@@ -595,6 +595,36 @@ function midiToVF(m,useFlats,sigPCs){
   return {key:letter+acc+'/'+oct, accidental};
 }
 
+/* ============================================================
+   (10-nov-2026, Iago: «que el generador de melodías tenga en cuenta qué estamos viendo en Intervalia… si estamos trabajando
+   la tercera mayor, que sea un intervalo que aparezca dos veces, garantizado… y que los intervalos que pueda utilizar sean
+   los que hayamos visto hasta ese momento… que siga cumpliendo que después de un salto hay que compensar en dirección
+   contraria») La lección de Intervalia de 4.º GE por la que vamos es la más alta apuntada este curso en el Diario
+   (intervalia_uso, curso 4Ge). Lo nuevo de cada lección, según el libro (Entonación Interválica GE), en semitonos:
+   1-2 segundas · 3 5J · 4 4J · 5 repaso · 6 3M · 7 3m · 8 6m · 9 6M · 10 repaso · 11 8J · 12 7M · 13 7m · 14 4A · 15 repaso.
+   Se permiten los intervalos vistos hasta esa lección y el de la lección (si no es repaso ni de segundas) sale 2 veces o
+   más. Sin dato (o sin red): como antes. La lección viaja con la semilla, así el iPad y la pantalla dibujan lo mismo.
+   Para quitarlo: borrar este bloque y las líneas «IVC» de genMelodia.
+   ============================================================ */
+const IV_NUEVO={1:[1,2],2:[1,2],3:[7],4:[5],5:[],6:[4],7:[3],8:[8],9:[9],10:[],11:[12],12:[11],13:[10],14:[6],15:[]};
+var IV_LECCION=null;
+function ivConfig(){
+  const L=Math.min(15,Math.floor(Number(IV_LECCION)));
+  if(!(L>=1)) return null;
+  const per=new Set(); for(let l=1;l<=L;l++) (IV_NUEVO[l]||[]).forEach(x=>per.add(x));
+  const nu=(IV_NUEVO[L]||[]).filter(x=>x>2);
+  return {per, foco: nu.length?nu[0]:null};
+}
+function cargarLeccionIV(){
+  const LS='pc_iv_leccion';
+  try{ const c=Number(localStorage.getItem(LS)); if(c>=1) IV_LECCION=c; }catch(e){}
+  const hoy=new Date(), y=hoy.getMonth()>=8?hoy.getFullYear():hoy.getFullYear()-1;
+  const url=PC_SB+'/rest/v1/intervalia_uso?select=leccion&curso=eq.4Ge&tipo=eq.intervalia&registrada_at=gte.'+y+'-09-01&order=leccion.desc&limit=1';
+  const lee=fetch(url,{cache:'no-store',headers:{apikey:PC_SB_KEY,Authorization:'Bearer '+PC_SB_KEY}})
+    .then(r=>r.ok?r.json():null).then(f=>{ const n=f&&f[0]?Number(f[0].leccion):NaN; if(n>=1){ IV_LECCION=n; try{ localStorage.setItem(LS,String(n)); }catch(e){} } }).catch(()=>{});
+  return Promise.race([lee, new Promise(r=>setTimeout(r,2500))]);
+}
+
 function genMelodia(key, clef){
   clef=clef||'treble';
   const all=buildPitches(key);
@@ -614,7 +644,11 @@ function genMelodia(key, clef){
   function intervaloDiat(a,b){ return Math.abs(idxOf(a)-idxOf(b))+1; } // 2,3,4,5,...,8
 
   // intervalos permitidos (diatónicos): 2ª,3ª,4ª,5ª,6ª,8ª  -> índices 1,2,3,4,5,7
-  const PASOS_OK=[1,2,3,4,5,7];
+  const IVC=ivConfig();   // (10-nov-2026) Intervalia: los intervalos vistos y el de la lección, dos veces
+  const PASOS_OK=[1,2,3,4,5,7].concat(IVC&&(IVC.per.has(10)||IVC.per.has(11))?[6]:[]);
+  const permitido=(a,b)=>!IVC || IVC.per.has(Math.abs(a-b));
+  /* solo segundas (Intervalia 1-2): con 9 pasos de segunda no se puede volver a la tónica; se deja repetir UNA nota */
+  const UNIS=!!IVC && ![...IVC.per].some(x=>x>2);
 
   // Valida la CALIDAD del intervalo combinando grados diatónicos y semitonos.
   // Prohíbe aumentados y disminuidos.
@@ -624,9 +658,10 @@ function genMelodia(key, clef){
     switch(paso){
       case 1: return semis===1||semis===2;    // 2ª menor o mayor (no aumentada=3)
       case 2: return semis===3||semis===4;     // 3ª menor o mayor
-      case 3: return semis===5;                // 4ª justa (no aumentada=6)
+      case 3: return semis===5 || (!!IVC && IVC.per.has(6) && semis===6);   // 4ª justa (la aumentada, solo desde Intervalia 14)
       case 4: return semis===7;                // 5ª justa (no disminuida=6)
       case 5: return semis===8||semis===9;     // 6ª menor o mayor (no aumentada/disminuida)
+      case 6: return semis===10||semis===11;   // 7ª (solo desde Intervalia 12-13)
       case 7: return semis===12;               // 8ª justa
       default: return false;
     }
@@ -643,7 +678,8 @@ function genMelodia(key, clef){
   //  arpegio (3ª+3ª o 3ª+4ª misma dir) -> {seg:true,dir:-saltoDir} (resuelve 2ª contraria)
   //  2ª y 8ª              -> null
 
-  let best=null;
+  let best=null, casi=null;
+  const nFoco=sq=>{ let n=0; for(let k=1;k<sq.length;k++) if(IVC && Math.abs(sq[k]-sq[k-1])===IVC.foco) n++; return n; };
   for(let intento=0;intento<3000;intento++){
     const seq=[startTonic];
     // estado: describe qué se permite en el SIGUIENTE movimiento
@@ -655,10 +691,10 @@ function genMelodia(key, clef){
     for(let i=1;i<9;i++){
       const prev=seq[i-1];
       let cands=midis.filter(m=>{
-        if(m===prev) return false;
+        if(m===prev) return UNIS && estado.tipo==='libre' && !seq.some((x,k)=>k>0&&x===seq[k-1]);
         const paso=Math.abs(idxOf(m)-idxOf(prev));
         if(!PASOS_OK.includes(paso)) return false;
-        return intervaloValido(prev,m);
+        return intervaloValido(prev,m) && permitido(prev,m);
       });
 
       // Filtrar según estado
@@ -692,7 +728,10 @@ function genMelodia(key, clef){
       }
 
       if(!cands.length){ ok=false; break; }
-      const nxt=pick(cands);
+      /* (10-nov-2026) si aún no han salido dos del intervalo de la lección, más probable elegirlo */
+      let nxt;
+      if(IVC && IVC.foco && nFoco(seq)<2){ const fc=cands.filter(m=>Math.abs(m-prev)===IVC.foco); nxt=(fc.length && RND()<0.85)?pick(fc):pick(cands); }
+      else nxt=pick(cands);
       const paso=Math.abs(idxOf(nxt)-idxOf(prev));
       const d=dir(prev,nxt);
 
@@ -710,7 +749,7 @@ function genMelodia(key, clef){
         // estado libre: clasificar el intervalo que acabamos de hacer
         if(paso===2){
           estado={tipo:'tras3a', dir:d};             // 3ª: abre posible arpegio
-        } else if(paso===3||paso===4||paso===5||paso===7){
+        } else if(paso===3||paso===4||paso===5||paso===6||paso===7){
           estado={tipo:'resolver', dir:-d};          // 4ª/5ª/6ª/8ª suelta: 2ª contraria
         } else {
           estado={tipo:'libre'};                     // 2ª
@@ -725,7 +764,7 @@ function genMelodia(key, clef){
       if(m===seq[8]) return false;
       const paso=Math.abs(idxOf(m)-idxOf(seq[8]));
       if(!PASOS_OK.includes(paso)) return false;
-      if(!intervaloValido(seq[8],m)) return false;
+      if(!intervaloValido(seq[8],m) || !permitido(seq[8],m)) return false;
       const d=dir(seq[8],m);
       if(estado.tipo==='resolver'){
         if(paso!==1) return false;
@@ -739,8 +778,10 @@ function genMelodia(key, clef){
     });
     if(!endCands.length) continue;
     seq.push(pick(endCands));
+    if(IVC && IVC.foco && nFoco(seq)<2){ if(!casi || nFoco(seq)>nFoco(casi)) casi=seq; continue; }   // (10-nov-2026) dos veces, garantizado
     best=seq;break;
   }
+  if(!best && casi) best=casi;
   if(!best){
     // fallback robusto: por 2ªs válidas
     best=[startTonic];
@@ -1037,7 +1078,7 @@ function publicarSemilla(seed){
     fetch(PC_SB+'/rest/v1/app_config?on_conflict=key',{ method:'POST', keepalive:true,
       headers:{ apikey:PC_SB_KEY, Authorization:'Bearer '+PC_SB_KEY, 'Content-Type':'application/json',
                 Prefer:'resolution=merge-duplicates,return=minimal' },
-      body:JSON.stringify({ key:PC_CLAVE, value:{ semilla:n, en:ahora }, updated_at:ahora })
+      body:JSON.stringify({ key:PC_CLAVE, value:{ semilla:n, en:ahora, leccion:IV_LECCION }, updated_at:ahora })
     }).catch(()=>{});
   }catch(e){}
 }
@@ -1073,6 +1114,7 @@ function abrirPantalla(){
     const v=(f && f[0] && f[0].value) || null;
     const n=v ? Number(v.semilla) : NaN;
     if(!Number.isFinite(n)){ avisoPantalla('Todavía no hay ningún carrusel generado en el iPad.'); return; }
+    if(v && v.leccion!=null) IV_LECCION=v.leccion;   // (10-nov-2026) la de ese carrusel
     renderConSemilla(n);
     const h=v.en ? horaDe(v.en) : '';
     const o=document.getElementById('pcOrigen'); if(o && h) o.textContent='Del iPad · '+h;
@@ -1117,7 +1159,8 @@ function generarTodo(){
 
 
 // Al cargar: si hay una sesión guardada, preguntar si continuar o empezar de nuevo.
-window.addEventListener('load',()=>{
+window.addEventListener('load',async ()=>{
+  try{ await cargarLeccionIV(); }catch(e){}   // (10-nov-2026) por qué lección de Intervalia vamos
   if(PC_PANTALLA){ abrirPantalla(); return; }   // (28-sep-2026) la espiral: sin ventanas ni dado
   let prev=null;
   try{ prev=localStorage.getItem(PC_SEED_KEY); }catch(e){}
@@ -1133,6 +1176,6 @@ window.addEventListener('load',()=>{
   guardarSesion(seed);
 });
 </script>
-<script src="guiado.js?v=11"></script>
+<script src="guiado.js?v=12"></script>
 </body>
 </html>
