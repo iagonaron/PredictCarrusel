@@ -619,9 +619,18 @@ function cargarLeccionIV(){
   const LS='pc_iv_leccion';
   try{ const c=Number(localStorage.getItem(LS)); if(c>=1) IV_LECCION=c; }catch(e){}
   const hoy=new Date(), y=hoy.getMonth()>=8?hoy.getFullYear():hoy.getFullYear()-1;
-  const url=PC_SB+'/rest/v1/intervalia_uso?select=leccion&curso=eq.4Ge&tipo=eq.intervalia&registrada_at=gte.'+y+'-09-01&order=leccion.desc&limit=1';
+  /* (18-nov-2026, Iago: «lo tenía configurado para que pusiese solo los intervalos que hemos dado en Intervalia… estamos en
+     la lección 5») Antes se cogía la lección más alta apuntada en el curso, y al preparar el lunes la semana siguiente
+     (lección 6) el carrusel de esta semana ya metía la 3.ª mayor. Ahora: la más alta de las semanas que ya han llegado
+     (la de esta semana o anteriores), nunca la de una semana preparada por adelantado. */
+  const url=PC_SB+'/rest/v1/intervalia_uso?select=leccion,semanas(anio,semana_iso)&curso=eq.4Ge&tipo=eq.intervalia&registrada_at=gte.'+y+'-09-01&order=leccion.desc&limit=60';
+  const isoAhora=(function(){ const d=new Date(Date.UTC(hoy.getFullYear(),hoy.getMonth(),hoy.getDate())); const dn=d.getUTCDay()||7; d.setUTCDate(d.getUTCDate()+4-dn);
+    const y0=new Date(Date.UTC(d.getUTCFullYear(),0,1)); return d.getUTCFullYear()*100+Math.ceil(((d-y0)/86400000+1)/7); })();
   const lee=fetch(url,{cache:'no-store',headers:{apikey:PC_SB_KEY,Authorization:'Bearer '+PC_SB_KEY}})
-    .then(r=>r.ok?r.json():null).then(f=>{ const n=f&&f[0]?Number(f[0].leccion):NaN; if(n>=1){ IV_LECCION=n; try{ localStorage.setItem(LS,String(n)); }catch(e){} } }).catch(()=>{});
+    .then(r=>r.ok?r.json():null).then(f=>{
+      const ok=(f||[]).filter(x=>{ const s=x&&x.semanas; return s && (Number(s.anio)*100+Number(s.semana_iso))<=isoAhora; });
+      const n=ok.length?Math.max.apply(null, ok.map(x=>Number(x.leccion)||0)):NaN;
+      if(n>=1){ IV_LECCION=n; try{ localStorage.setItem(LS,String(n)); }catch(e){} } }).catch(()=>{});
   return Promise.race([lee, new Promise(r=>setTimeout(r,2500))]);
 }
 
