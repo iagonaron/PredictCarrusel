@@ -210,7 +210,7 @@
   }
 </style>
 <!-- (30-sep-2026, Iago) modo guiado en la pantalla de clase (?pantalla=1): portada, ejercicios guiados y créditos -->
-<link rel="stylesheet" href="guiado.css?v=7">
+<link rel="stylesheet" href="guiado.css?v=8">
 </head>
 <body>
 <div class="wrap">
@@ -548,14 +548,23 @@ const KEYS=[
 ];
 const NOTE_NAMES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const NOTE_FLATS=['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
-// (19-nov-2026, Iago) en TonCom puede haber tonalidades de hasta 3 alteraciones (el melódico sigue con KEYS)
+// (19-nov-2026, Iago) en TonCom puede haber tonalidades de hasta 5 alteraciones (el melódico sigue con KEYS)
 const KEYS_TON=KEYS.concat([
   {name:'La M',  tonic:'A', mode:'major', vfsig:'A',  sig:3},
   {name:'Fa♯ m', tonic:'F#',mode:'minor', vfsig:'A',  sig:3},   // relativa: La M (3#)
   {name:'Mi♭ M', tonic:'Eb',mode:'major', vfsig:'Eb', sig:-3},
   {name:'Do m',  tonic:'C', mode:'minor', vfsig:'Eb', sig:-3},  // relativa: Mi♭ M (3b)
+  // (19-nov-2026, 19:40, Iago) hasta 5 alteraciones
+  {name:'Mi M',  tonic:'E', mode:'major', vfsig:'E',  sig:4},
+  {name:'Do♯ m', tonic:'C#',mode:'minor', vfsig:'E',  sig:4},
+  {name:'La♭ M', tonic:'Ab',mode:'major', vfsig:'Ab', sig:-4},
+  {name:'Fa m',  tonic:'F', mode:'minor', vfsig:'Ab', sig:-4},
+  {name:'Si M',  tonic:'B', mode:'major', vfsig:'B',  sig:5},
+  {name:'Sol♯ m',tonic:'G#',mode:'minor', vfsig:'B',  sig:5},
+  {name:'Re♭ M', tonic:'Db',mode:'major', vfsig:'Db', sig:-5},
+  {name:'Si♭ m', tonic:'Bb',mode:'minor', vfsig:'Db', sig:-5},
 ]);
-const TONIC_PC={'C':0,'C#':1,'Db':1,'D':2,'Eb':3,'E':4,'F':5,'F#':6,'G':7,'Ab':8,'A':9,'Bb':10,'B':11};
+const TONIC_PC={'C':0,'C#':1,'Db':1,'D':2,'Eb':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'Ab':8,'A':9,'Bb':10,'B':11};
 
 // Pitch-classes que la armadura altera, por nº de alteraciones con signo.
 // sostenidos en orden F C G D A E B ; bemoles B E A D G C F
@@ -886,7 +895,7 @@ function dibujarPentagramaMelodico(ctx, key, mel, x0, y, w, conMarcoYEtiqueta){
 function renderToncom(seed){
   const cont=document.getElementById('canvas-toncom');
   cont.innerHTML='';
-  const key=pick(KEYS_TON);   // (19-nov-2026, Iago) TonCom: hasta 3 alteraciones
+  const key=pick(KEYS_TON);   // (19-nov-2026, Iago) TonCom: hasta 5 alteraciones
   const compas=pick(['2/4','3/4','6/8']);
   // armadura legible: nº y tipo de alteración
   const n=Math.abs(key.sig);
@@ -1192,6 +1201,6 @@ window.addEventListener('load',async ()=>{
   guardarSesion(seed);
 });
 </script>
-<script src="guiado.js?v=12"></script>
+<script src="guiado.js?v=13"></script>
 </body>
 </html>

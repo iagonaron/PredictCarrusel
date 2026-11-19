@@ -830,7 +830,8 @@ function armaduraHTML(sig){ if(!sig) return '0';
 function dibujaToncom(host,T){
   const cp=T.compas.split('/');
   const celda=(k,lab,sol)=>'<div class="tc" data-k="'+k+'"><div class="lab">'+lab+'</div><div class="val"><span class="q">?</span><span class="sol pcg-oc">'+sol+'</span></div></div>';
-  host.innerHTML='<div class="pcg-ton">'+celda('ton','Tonalidad',T.tonalidad)+celda('arm','Armadura',armaduraHTML(T.key.sig))+
+  // (19-nov-2026, Iago) letrerito: puede haber tonalidades de hasta 5 alteraciones
+  host.innerHTML='<div class="pcg-ton-aviso">Puede haber tonalidades de hasta 5 alteraciones</div><div class="pcg-ton">'+celda('ton','Tonalidad',T.tonalidad)+celda('arm','Armadura',armaduraHTML(T.key.sig))+
     celda('com','Compás','<span class="cp"><span>'+cp[0]+'</span><span>'+cp[1]+'</span></span>')+'</div>';
   const c=k=>host.querySelector('.tc[data-k="'+k+'"]');
   return { ton:c('ton'), arm:c('arm'), com:c('com'),

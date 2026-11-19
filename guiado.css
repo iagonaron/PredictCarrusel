@@ -415,3 +415,6 @@ html.pc-pantalla #pcgBonusIpad{display:none}
 #pcg .pcg-apagada path{fill:#000;stroke:#000}
 #pcg .vf-notehead path{transition:fill .5s ease,stroke .5s ease}
 #pcg .pcg-rol{transition:fill .4s ease}
+
+/* (19-nov-2026, Iago) TonCom: letrerito de «hasta 5 alteraciones» */
+.pcg-ton-aviso{position:absolute;top:14px;left:50%;transform:translateX(-50%);white-space:nowrap;font:700 18px/1.2 "Helvetica Neue",Arial,sans-serif;color:#9a3412;background:#fff7ed;border:1.5px solid #fdba74;border-radius:10px;padding:6px 16px;z-index:2;pointer-events:none}
